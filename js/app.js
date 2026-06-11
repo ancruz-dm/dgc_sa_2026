@@ -15,8 +15,8 @@
    CONFIG
    ============================================================ */
 const CONFIG = {
-  SUPABASE_URL:      'https://aishopxdeetglbmxsjad.supabase.co',
-  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpc2hvcHhkZWV0Z2xibXhzamFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDE5MTEsImV4cCI6MjA5NjYxNzkxMX0._XQ3C8ZV32OO1tMS3Bm-tGYWm8zaFtSscraUg60uNdU',
+  SUPABASE_URL:      'https://uyqgxuwqiqrkyzbnhxph.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5cWd4dXdxaXFya3l6Ym5oeHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMzMxNDEsImV4cCI6MjA5NjcwOTE0MX0.K5qBJZgRagrsgRhBVkBBFKk5keHRQc1HplOO9ClHXEU',
   EVENT_DATE:        new Date('2026-11-22T08:00:00+02:00'),
   TOTAL_STEPS:       10,
 };
