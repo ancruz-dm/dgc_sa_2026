@@ -193,13 +193,11 @@ departure_datetime:
       // Health & emergency
       medical_conditions:            orNull(this.data.medicalConditions),
       medications:                   orNull(this.data.medications),
-      carries_epipen:                orNull(this.data.carriesEpipen),
+      carries_epipen:   this.data.carriesEpipen === 'yes' ||   this.data.carriesEpipen === true,
       emergency_contact_name:        orNull(this.data.emergencyContactName),
       emergency_contact_relationship: orNull(this.data.emergencyContactRelationship),
       emergency_contact_phone:       orNull(this.data.emergencyContactPhone),
-travel_insurance_confirmed:
-  this.data.travelInsurance === true ||
-  this.data.travelInsurance === 'true',
+      travel_insurance_confirmed:    orNull(this.data.travelInsurance),
 
       // Accessibility
       mobility_requirements:         orNull(this.data.mobilityRequirements),
