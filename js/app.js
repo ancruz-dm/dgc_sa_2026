@@ -154,7 +154,7 @@ const FormState = {
     return {
       // Personal
       full_name:                     sanitise(this.data.fullName       || ''),
-      email,
+      work_email: email,
       whatsapp_number:               orNull(this.data.whatsappNumber),
 
       // Professional
@@ -163,15 +163,23 @@ const FormState = {
       office_location:               orNull(this.data.officeLocation),
       office_country:                orNull(this.data.officeCountry),
 
-      // Travel
-      country_of_residence:          orNull(this.data.countryOfResidence),
-      departure_city:                orNull(this.data.departureCity),
-      visa_required:                 orNull(this.data.visaRequired),
-      yellow_fever_required:         orNull(this.data.yellowFeverRequired),
-      arrival_date:                  orNull(this.data.arrivalDate),
-      arrival_time:                  orNull(this.data.arrivalTime),
-      departure_date:                orNull(this.data.departureDate),
-      departure_time:                orNull(this.data.departureTime),
+// Travel
+country_of_residence:          orNull(this.data.countryOfResidence),
+departure_city:                orNull(this.data.departureCity),
+visa_required:                 orNull(this.data.visaRequired),
+
+yellow_fever_certificate_required:
+  orNull(this.data.yellowFeverRequired),
+
+arrival_datetime:
+  this.data.arrivalDate
+    ? `${this.data.arrivalDate}T${this.data.arrivalTime || '12:00'}:00`
+    : null,
+
+departure_datetime:
+  this.data.departureDate
+    ? `${this.data.departureDate}T${this.data.departureTime || '12:00'}:00`
+    : null,
 
       // Transfers
       airport_transfer_arrival:      orNull(this.data.airportTransferArrival),
