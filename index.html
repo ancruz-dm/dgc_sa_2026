@@ -778,18 +778,32 @@ In the meantime, here's what to expect across the six days.
             </div>
             <div class="form-group">
               <label class="form-label" for="f-arrivaldate">Arrival Date</label>
-              <input class="form-input" type="date" id="f-arrivaldate" name="arrivalDate">
+<input
+  class="form-input"
+  type="date"
+  id="f-arrivaldate"
+  name="arrivalDate"
+  min="2026-11-01"
+  max="2026-11-27"
+  value="2026-11-22">
             </div>
             <div class="form-group">
-              <label class="form-label" for="f-arrivaltime">Arrival Time (local SA)</label>
+              <label class="form-label" for="f-arrivaltime">Arrival Time (local South Africa)</label>
               <input class="form-input" type="time" id="f-arrivaltime" name="arrivalTime">
             </div>
             <div class="form-group">
               <label class="form-label" for="f-departuredate">Departure Date</label>
-              <input class="form-input" type="date" id="f-departuredate" name="departureDate">
+<input
+  class="form-input"
+  type="date"
+  id="f-departuredate"
+  name="departureDate"
+  min="2026-11-22"
+  max="2026-11-30"
+  value="2026-11-27">
             </div>
             <div class="form-group">
-              <label class="form-label" for="f-departuretime">Departure Time (local SA)</label>
+              <label class="form-label" for="f-departuretime">Departure Time (local South Africa)</label>
               <input class="form-input" type="time" id="f-departuretime" name="departureTime">
             </div>
           </div>
