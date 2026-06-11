@@ -166,7 +166,7 @@ const FormState = {
 // Travel
 country_of_residence:          orNull(this.data.countryOfResidence),
 departure_city:                orNull(this.data.departureCity),
-visa_required:                 orNull(this.data.visaRequired),
+visa_status: orNull(this.data.visaRequired),
 
 yellow_fever_certificate_required:
   orNull(this.data.yellowFeverRequired),
