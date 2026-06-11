@@ -89,7 +89,7 @@ const RegistrationService = {
   async getAll() {
     try {
       const response = await fetch(
-        CONFIG.SUPABASE_URL + '/rest/v1/registrations?select=*&order=submitted_at.desc',
+        CONFIG.SUPABASE_URL + '/rest/v1/registrations?select=*&order=created_at.desc'
         {
           headers: {
             'apikey':        CONFIG.SUPABASE_ANON_KEY,
@@ -197,7 +197,9 @@ departure_datetime:
       emergency_contact_name:        orNull(this.data.emergencyContactName),
       emergency_contact_relationship: orNull(this.data.emergencyContactRelationship),
       emergency_contact_phone:       orNull(this.data.emergencyContactPhone),
-      travel_insurance:              orNull(this.data.travelInsurance),
+travel_insurance_confirmed:
+  this.data.travelInsurance === true ||
+  this.data.travelInsurance === 'true',
 
       // Accessibility
       mobility_requirements:         orNull(this.data.mobilityRequirements),
@@ -210,10 +212,11 @@ departure_datetime:
       tshirt_size:                   orNull(this.data.tshirtSize),
 
       // Consent
-      privacy_accepted:              this.data.privacyAccepted === true || this.data.privacyAccepted === 'true',
+privacy_policy_accepted:
+  this.data.privacyAccepted === true ||
+  this.data.privacyAccepted === 'true',
       terms_accepted:                this.data.termsAccepted === true || this.data.termsAccepted === 'true',
 
-      submitted_at: new Date().toISOString(),
     };
   },
 };
@@ -717,8 +720,17 @@ function renderAdminTable(rows) {
   }
 
   tbody.innerHTML = rows.map(r => {
-    const submitted = r.submitted_at
-      ? new Date(r.submitted_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    const submitted = r.created_at
+  ? new Date(r.created_at).toLocaleDateString(
+      'en-GB',
+      {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }
+    )
       : '—';
     return `<tr>
       <td>${escHtml(r.full_name || '—')}</td>
@@ -747,17 +759,39 @@ function exportCSV() {
     return;
   }
 
-  const columns = [
-    'full_name', 'email', 'whatsapp_number', 'job_title', 'business_unit',
-    'office_location', 'office_country', 'country_of_residence', 'departure_city',
-    'visa_required', 'yellow_fever_required', 'arrival_date', 'arrival_time',
-    'departure_date', 'departure_time', 'airport_transfer_arrival',
-    'airport_transfer_departure', 'dietary_restrictions', 'food_allergies',
-    'dietary_notes', 'medical_conditions', 'medications', 'carries_epipen',
-    'emergency_contact_name', 'emergency_contact_relationship', 'emergency_contact_phone',
-    'travel_insurance', 'mobility_requirements', 'accessibility_requirements',
-    'preferred_topics', 'tshirt_size', 'privacy_accepted', 'terms_accepted', 'submitted_at',
-  ];
+const columns = [
+  'full_name',
+  'work_email',
+  'whatsapp_number',
+  'job_title',
+  'business_unit',
+  'office_location',
+  'office_country',
+  'country_of_residence',
+  'departure_city',
+  'visa_required',
+  'yellow_fever_certificate_required',
+  'arrival_datetime',
+  'departure_datetime',
+  'airport_transfer_arrival',
+  'airport_transfer_departure',
+  'dietary_restrictions',
+  'food_allergies',
+  'dietary_notes',
+  'medical_conditions',
+  'medications',
+  'carries_epipen',
+  'emergency_contact_name',
+  'emergency_contact_relationship',
+  'emergency_contact_phone',
+  'travel_insurance_confirmed',
+  'mobility_requirements',
+  'accessibility_requirements',
+  'preferred_topics',
+  'tshirt_size',
+  'privacy_policy_accepted',
+  'terms_accepted'
+];
 
   const header = columns.map(c => '"' + c + '"').join(',');
   const rows   = adminRegistrations.map(r =>
