@@ -1,11 +1,12 @@
 /**
- * Datamine Offsite 2027 — app.js
+ * Datamine Global Conference 2026 — app.js
+ * Version 2
  *
- * Architecture: clean service layer, no browser storage.
- * Registration submits via Supabase REST API.
+ * Architecture: clean service layer, Supabase REST backend.
+ * 10-step multi-form with in-memory auto-save.
+ * Hidden admin panel activated via ?admin=true
  *
- * @see docs/POWER_AUTOMATE_SETUP.md for flow configuration
- * @see docs/ADMIN_DASHBOARD.md for SharePoint admin operations
+ * preferred_topics is TEXT (not array) per database schema.
  */
 
 'use strict';
@@ -14,10 +15,10 @@
    CONFIG
    ============================================================ */
 const CONFIG = {
-  SUPABASE_URL: 'https://aishopxdeetglbmxsjad.supabase.co',
+  SUPABASE_URL:      'https://aishopxdeetglbmxsjad.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpc2hvcHhkZWV0Z2xibXhzamFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDE5MTEsImV4cCI6MjA5NjYxNzkxMX0._XQ3C8ZV32OO1tMS3Bm-tGYWm8zaFtSscraUg60uNdU',
-  EVENT_DATE: new Date('2026-11-22T18:00:00'),
-  FORM_STEPS: 4,
+  EVENT_DATE:        new Date('2026-11-22T08:00:00+02:00'),
+  TOTAL_STEPS:       10,
 };
 
 /* ============================================================
@@ -30,10 +31,10 @@ const RegistrationService = {
       const response = await fetch(CONFIG.SUPABASE_URL + '/rest/v1/registrations', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'apikey': CONFIG.SUPABASE_ANON_KEY,
+          'Content-Type':  'application/json',
+          'apikey':        CONFIG.SUPABASE_ANON_KEY,
           'Authorization': 'Bearer ' + CONFIG.SUPABASE_ANON_KEY,
-          'Prefer': 'return=minimal',
+          'Prefer':        'return=minimal',
         },
         body: JSON.stringify(payload),
       });
@@ -53,7 +54,7 @@ const RegistrationService = {
       console.error('[RegistrationService] HTTP ' + response.status, body);
       return {
         success: false,
-        error: 'Submission failed (status ' + response.status + '). Please try again or email anton.clowes@vigsw.com.',
+        error: 'Submission failed (HTTP ' + response.status + '). Please try again or contact anton.clowes@vigsw.com.',
       };
 
     } catch (err) {
@@ -62,7 +63,7 @@ const RegistrationService = {
         success: false,
         error: !navigator.onLine
           ? 'You appear to be offline. Please check your connection and try again.'
-          : 'Could not reach the registration service. Please try again or email anton.clowes@vigsw.com.',
+          : 'Could not reach the registration service. Please try again or contact anton.clowes@vigsw.com.',
       };
     }
   },
@@ -72,8 +73,8 @@ const RegistrationService = {
       const response = await fetch(CONFIG.SUPABASE_URL + '/rest/v1/rpc/get_registration_stats', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'apikey': CONFIG.SUPABASE_ANON_KEY,
+          'Content-Type':  'application/json',
+          'apikey':        CONFIG.SUPABASE_ANON_KEY,
           'Authorization': 'Bearer ' + CONFIG.SUPABASE_ANON_KEY,
         },
         body: JSON.stringify({}),
@@ -85,25 +86,59 @@ const RegistrationService = {
     }
   },
 
+  async getAll() {
+    try {
+      const response = await fetch(
+        CONFIG.SUPABASE_URL + '/rest/v1/registrations?select=*&order=submitted_at.desc',
+        {
+          headers: {
+            'apikey':        CONFIG.SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + CONFIG.SUPABASE_ANON_KEY,
+          },
+        }
+      );
+      if (!response.ok) return [];
+      return await response.json();
+    } catch {
+      return [];
+    }
+  },
+
 };
 
 /* ============================================================
-   FORM STATE — in-memory only, no browser storage
+   FORM STATE — in-memory only
    ============================================================ */
 const FormState = {
   currentStep: 1,
   data: {},
+  draftKey: 'dm_conf_2026_draft',
 
   merge(stepData) {
     this.data = { ...this.data, ...stepData };
+    this._saveDraft();
+  },
+
+  _saveDraft() {
+    try {
+      sessionStorage.setItem(this.draftKey, JSON.stringify(this.data));
+    } catch { /* sessionStorage may be unavailable */ }
+  },
+
+  loadDraft() {
+    try {
+      const raw = sessionStorage.getItem(this.draftKey);
+      if (raw) this.data = JSON.parse(raw);
+    } catch { /* ignore */ }
+  },
+
+  clearDraft() {
+    try { sessionStorage.removeItem(this.draftKey); } catch { /* ignore */ }
   },
 
   buildPayload() {
-    const sanitise = val => (typeof val === 'string' ? val.trim().replace(/[<>]/g, '') : val);
-
-    const workshops = Array.from(
-      document.querySelectorAll('input[name="workshops"]:checked')
-    ).map(cb => cb.value);
+    const sanitise = val =>
+      typeof val === 'string' ? val.trim().replace(/[<>]/g, '') : val;
 
     const orNull = val => {
       if (val === null || val === undefined) return null;
@@ -111,45 +146,66 @@ const FormState = {
       return s === '' ? null : s;
     };
 
+    const email = (this.data.email || '').trim().toLowerCase().replace(/\s+/g, '');
+
+    // preferred_topics is TEXT (not array) per Supabase schema
+    const preferredTopics = orNull(this.data.preferredTopics);
+
     return {
-      first_name:               sanitise(this.data.firstName   || ''),
-      last_name:                sanitise(this.data.lastName    || ''),
-      email: (this.data.email || '')
-  .trim()
-  .toLowerCase()
-  .replace(/\s+/g, ''),
-      team:                     sanitise(this.data.team         || ''),
-      role:                     orNull(this.data.role),
-      manager:                  orNull(this.data.manager),
-      office_location:          orNull(this.data.location),
-      attendance_status:        sanitise(this.data.attendance   || 'confirmed'),
-      arrival_date:             orNull(this.data.arrivalDate),
-      departure_date:           orNull(this.data.departureDate),
-      arrival_time:             orNull(this.data.arrivalTime),
-      departure_time:           orNull(this.data.departureTime),
-      airline:                  orNull(this.data.airline),
-      flight_number:            orNull(this.data.flightNumber),
-      departure_airport:        orNull(this.data.departureAirport),
-      shuttle_required:         sanitise(this.data.shuttle      || ''),
-      luggage_count:            orNull(this.data.luggage),
-      visa_letter_required:     sanitise(this.data.visaLetter   || ''),
-      passport_nationality:     orNull(this.data.passportNationality),
-      emergency_contact_name:   orNull(this.data.emergencyContactName),
-      emergency_contact_phone:  orNull(this.data.emergencyContactPhone),
-      emergency_contact_relation: orNull(this.data.emergencyContactRelation),
-      check_in_date:            orNull(this.data.checkIn),
-      check_out_date:           orNull(this.data.checkOut),
-      room_type:                orNull(this.data.roomType),
-      roommate_preference:      orNull(this.data.roommatePreference),
-      tshirt_size:              sanitise(this.data.tshirtSize   || ''),
-      dietary_requirements:     orNull(this.data.dietaryRequirements),
-      accessibility_requirements: orNull(this.data.accessibilityRequirements),
-      primary_interest:         orNull(this.data.primaryInterest),
-      workshop_tracks:          workshops.length ? workshops : null,
-      hackathon_interest:       orNull(this.data.hackathonInterest),
-      expectations:             orNull(this.data.expectations),
-      notes:                    orNull(this.data.notes),
-      submitted_at:             new Date().toISOString(),
+      // Personal
+      full_name:                     sanitise(this.data.fullName       || ''),
+      email,
+      whatsapp_number:               orNull(this.data.whatsappNumber),
+
+      // Professional
+      job_title:                     orNull(this.data.jobTitle),
+      business_unit:                 orNull(this.data.businessUnit),
+      office_location:               orNull(this.data.officeLocation),
+      office_country:                orNull(this.data.officeCountry),
+
+      // Travel
+      country_of_residence:          orNull(this.data.countryOfResidence),
+      departure_city:                orNull(this.data.departureCity),
+      visa_required:                 orNull(this.data.visaRequired),
+      yellow_fever_required:         orNull(this.data.yellowFeverRequired),
+      arrival_date:                  orNull(this.data.arrivalDate),
+      arrival_time:                  orNull(this.data.arrivalTime),
+      departure_date:                orNull(this.data.departureDate),
+      departure_time:                orNull(this.data.departureTime),
+
+      // Transfers
+      airport_transfer_arrival:      orNull(this.data.airportTransferArrival),
+      airport_transfer_departure:    orNull(this.data.airportTransferDeparture),
+
+      // Dietary
+      dietary_restrictions:          orNull(this.data.dietaryRestrictions),
+      food_allergies:                orNull(this.data.foodAllergies),
+      dietary_notes:                 orNull(this.data.dietaryNotes),
+
+      // Health & emergency
+      medical_conditions:            orNull(this.data.medicalConditions),
+      medications:                   orNull(this.data.medications),
+      carries_epipen:                orNull(this.data.carriesEpipen),
+      emergency_contact_name:        orNull(this.data.emergencyContactName),
+      emergency_contact_relationship: orNull(this.data.emergencyContactRelationship),
+      emergency_contact_phone:       orNull(this.data.emergencyContactPhone),
+      travel_insurance:              orNull(this.data.travelInsurance),
+
+      // Accessibility
+      mobility_requirements:         orNull(this.data.mobilityRequirements),
+      accessibility_requirements:    orNull(this.data.accessibilityRequirements),
+
+      // Programme — TEXT not array
+      preferred_topics:              preferredTopics,
+
+      // Merchandise
+      tshirt_size:                   orNull(this.data.tshirtSize),
+
+      // Consent
+      privacy_accepted:              this.data.privacyAccepted === true || this.data.privacyAccepted === 'true',
+      terms_accepted:                this.data.termsAccepted === true || this.data.termsAccepted === 'true',
+
+      submitted_at: new Date().toISOString(),
     };
   },
 };
@@ -159,343 +215,343 @@ const FormState = {
    ============================================================ */
 const Validator = {
   rules: {
-    'f-fname':      { required: true, label: 'First name' },
-    'f-lname':      { required: true, label: 'Last name' },
-    'f-email':      { required: true, type: 'email', label: 'Email', pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
-    'f-team':       { required: true, label: 'Team' },
-    'f-manager':    { required: true, label: 'Manager' },
-    'f-location':   { required: true, label: 'Location' },
-    'f-attendance': { required: true, label: 'Attendance confirmation' },
-    'f-arrival':    { required: true, label: 'Arrival date' },
-    'f-departure':  { required: true, label: 'Departure date' },
+    'f-fullname':      { required: true,  label: 'Full name' },
+    'f-email':         { required: true,  label: 'Work email', pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
+    'f-jobtitle':      { required: true,  label: 'Job title' },
+    'f-businessunit':  { required: true,  label: 'Business unit' },
+    'f-residencecountry': { required: true, label: 'Country of residence' },
+    'f-emergencyname': { required: true,  label: 'Emergency contact name' },
+    'f-emergencyphone':{ required: true,  label: 'Emergency contact phone' },
+  },
+
+  setFieldError(field, errId, msg) {
+    const errEl = document.getElementById(errId);
+    if (msg) {
+      field.classList.add('invalid');
+      if (errEl) errEl.textContent = msg;
+    } else {
+      field.classList.remove('invalid');
+      if (errEl) errEl.textContent = '';
+    }
   },
 
   validateStep(step) {
-    const stepFields = {
-      1: ['f-fname', 'f-lname', 'f-email', 'f-team', 'f-manager', 'f-location', 'f-attendance'],
-      2: ['f-arrival', 'f-departure'],
-      3: [],
-      4: [],
-    };
+    const stepEl = document.getElementById('form-step-' + step);
+    if (!stepEl) return true;
 
     let valid = true;
-    const fields = stepFields[step] || [];
 
-    fields.forEach(id => {
-      const rule = this.rules[id];
-      if (!rule) return;
+    // Required inputs/selects/textareas
+    const fields = stepEl.querySelectorAll('[required]');
+    fields.forEach(field => {
+      const value = field.value.trim();
+      const rule  = this.rules[field.id];
+      const errId = field.id.replace('f-', 'err-');
+      let error   = '';
 
-      const el = document.getElementById(id);
-      if (!el) return;
-
-      const value = el.value.trim();
-      let error = '';
-
-      if (rule.required && !value) {
-        error = `${rule.label} is required.`;
-      } else if (rule.pattern && value && !rule.pattern.test(value)) {
-        error = `Please enter a valid ${rule.label.toLowerCase()}.`;
+      if (!value) {
+        error = (rule ? rule.label : field.name) + ' is required.';
+      } else if (rule && rule.pattern && !rule.pattern.test(value)) {
+        error = 'Please enter a valid ' + rule.label.toLowerCase() + '.';
       }
 
-      this.setFieldError(el, id.replace('f-', 'err-'), error);
+      this.setFieldError(field, errId, error);
       if (error) valid = false;
     });
 
-    return valid;
-  },
-
-  setFieldError(el, errId, message) {
-    const errEl = document.getElementById(errId);
-    if (message) {
-      el.classList.add('invalid');
-      if (errEl) errEl.textContent = message;
-    } else {
-      el.classList.remove('invalid');
-      if (errEl) errEl.textContent = '';
+    // Step 9: t-shirt size
+    if (step === 9) {
+      const selected = document.querySelector('input[name="tshirtSize"]:checked');
+      const errEl = document.getElementById('err-tshirt');
+      if (!selected) {
+        if (errEl) errEl.textContent = 'Please select a t-shirt size.';
+        valid = false;
+      } else {
+        if (errEl) errEl.textContent = '';
+      }
     }
+
+    // Step 10: consent checkboxes
+    if (step === 10) {
+      ['f-privacy', 'f-terms'].forEach(id => {
+        const cb = document.getElementById(id);
+        const errId = id.replace('f-', 'err-');
+        const errEl = document.getElementById(errId);
+        if (cb && !cb.checked) {
+          if (errEl) errEl.textContent = 'This confirmation is required.';
+          valid = false;
+        } else if (errEl) {
+          errEl.textContent = '';
+        }
+      });
+    }
+
+    return valid;
   },
 };
 
 /* ============================================================
-   FORM STEP NAVIGATION
+   FORM STEP DATA COLLECTION
    ============================================================ */
 function collectStepData(step) {
-  const map = {
-    1: ['f-fname', 'f-lname', 'f-email', 'f-team', 'f-role', 'f-manager', 'f-location', 'f-attendance'],
-    2: ['f-arrival', 'f-departure', 'f-arrival-time', 'f-departure-time', 'f-airline', 'f-flight-num',
-        'f-airport', 'f-shuttle', 'f-luggage', 'f-visa', 'f-passport',
-        'f-emergency-name', 'f-emergency-phone', 'f-emergency-relation'],
-    3: ['f-checkin', 'f-checkout', 'f-room', 'f-roommate', 'f-tshirt', 'f-dietary', 'f-access'],
-    4: ['f-excited', 'f-hackathon', 'f-expectations', 'f-notes'],
-  };
-
-  const idToKey = {
-    'f-fname': 'firstName', 'f-lname': 'lastName', 'f-email': 'email',
-    'f-team': 'team', 'f-role': 'role', 'f-manager': 'manager',
-    'f-location': 'location', 'f-attendance': 'attendance',
-    'f-arrival': 'arrivalDate', 'f-departure': 'departureDate',
-    'f-arrival-time': 'arrivalTime', 'f-departure-time': 'departureTime',
-    'f-airline': 'airline', 'f-flight-num': 'flightNumber',
-    'f-airport': 'departureAirport', 'f-shuttle': 'shuttle',
-    'f-luggage': 'luggage', 'f-visa': 'visaLetter', 'f-passport': 'passportNationality',
-    'f-emergency-name': 'emergencyContactName', 'f-emergency-phone': 'emergencyContactPhone',
-    'f-emergency-relation': 'emergencyContactRelation',
-    'f-checkin': 'checkIn', 'f-checkout': 'checkOut', 'f-room': 'roomType',
-    'f-roommate': 'roommatePreference', 'f-tshirt': 'tshirtSize',
-    'f-dietary': 'dietaryRequirements', 'f-access': 'accessibilityRequirements',
-    'f-excited': 'primaryInterest', 'f-hackathon': 'hackathonInterest',
-    'f-expectations': 'expectations', 'f-notes': 'notes',
-  };
+  const stepEl = document.getElementById('form-step-' + step);
+  if (!stepEl) return {};
 
   const data = {};
-  (map[step] || []).forEach(id => {
-    const el = document.getElementById(id);
-    if (el) data[idToKey[id]] = el.value.trim();
+  const inputs   = stepEl.querySelectorAll('input:not([type="radio"]):not([type="checkbox"])');
+  const selects  = stepEl.querySelectorAll('select');
+  const textareas = stepEl.querySelectorAll('textarea');
+  const radios   = {};
+
+  // Collect radio values
+  stepEl.querySelectorAll('input[type="radio"]:checked').forEach(r => {
+    radios[r.name] = r.value;
   });
 
-  FormState.merge(data);
+  // Collect checkboxes
+  stepEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    data[toCamel(cb.name)] = cb.checked;
+  });
+
+  inputs.forEach(el => {
+    if (el.name) data[toCamel(el.name)] = el.value;
+  });
+
+  selects.forEach(el => {
+    if (el.name) data[toCamel(el.name)] = el.value;
+  });
+
+  textareas.forEach(el => {
+    if (el.name) data[toCamel(el.name)] = el.value;
+  });
+
+  Object.assign(data, radios);
+
+  return data;
 }
 
-function showStep(stepNum) {
-  const totalSteps = CONFIG.FORM_STEPS;
+function toCamel(str) {
+  return str.replace(/-./g, x => x[1].toUpperCase())
+            .replace(/_./g, x => x[1].toUpperCase());
+}
 
-  for (let i = 1; i <= totalSteps; i++) {
-    const panel = document.getElementById(`form-step-${i}`);
-    const indicator = document.getElementById(`step-indicator-${i}`);
-    const connector = indicator?.nextElementSibling;
-
+/* ============================================================
+   MULTI-STEP NAVIGATION
+   ============================================================ */
+function nextStep(current) {
+  if (!Validator.validateStep(current)) {
+    // Shake the step
+    const panel = document.getElementById('form-step-' + current);
     if (panel) {
-      if (i === stepNum) {
-        panel.removeAttribute('hidden');
-        panel.classList.add('active');
-      } else {
-        panel.setAttribute('hidden', '');
-        panel.classList.remove('active');
-      }
+      panel.style.animation = 'none';
+      setTimeout(() => {
+        panel.style.animation = '';
+      }, 10);
     }
-
-    if (indicator) {
-      indicator.classList.remove('active', 'completed');
-      if (i === stepNum) indicator.classList.add('active');
-      if (i < stepNum) indicator.classList.add('completed');
-    }
-
-    if (connector && connector.classList.contains('step-connector')) {
-      if (i < stepNum) {
-        connector.classList.add('completed');
-      } else {
-        connector.classList.remove('completed');
-      }
-    }
+    return;
   }
 
-  FormState.currentStep = stepNum;
+  FormState.merge(collectStepData(current));
 
-  const registerSection = document.getElementById('register');
-  if (registerSection) {
-    const offset = registerSection.getBoundingClientRect().top + window.scrollY - 80;
-    window.scrollTo({ top: offset, behavior: 'smooth' });
-  }
+  const next = current + 1;
+  if (next > CONFIG.TOTAL_STEPS) return;
 
-  const heading = document.querySelector(`#form-step-${stepNum} .form-step-heading`);
-  if (heading) heading.focus();
+  showStep(current, next);
 }
 
-window.nextStep = function(currentStep) {
-  if (!Validator.validateStep(currentStep)) return;
-  collectStepData(currentStep);
-  showStep(currentStep + 1);
-};
+function prevStep(current) {
+  FormState.merge(collectStepData(current));
+  const prev = current - 1;
+  if (prev < 1) return;
+  showStep(current, prev);
+}
 
-window.prevStep = function(currentStep) {
-  collectStepData(currentStep);
-  showStep(currentStep - 1);
-};
+function showStep(from, to) {
+  const fromEl = document.getElementById('form-step-' + from);
+  const toEl   = document.getElementById('form-step-' + to);
+
+  if (fromEl) fromEl.hidden = true;
+  if (toEl)   toEl.hidden = false;
+
+  FormState.currentStep = to;
+  updateStepIndicator(to);
+
+  // Scroll to form top
+  const formWrap = document.getElementById('reg-form-wrap');
+  if (formWrap) {
+    const top = formWrap.getBoundingClientRect().top + window.scrollY - (72 + 20);
+    window.scrollTo({ top, behavior: 'smooth' });
+  }
+}
+
+function updateStepIndicator(current) {
+  document.querySelectorAll('.form-step-item').forEach(item => {
+    const step = parseInt(item.dataset.step, 10);
+    item.classList.remove('active', 'completed');
+    if (step === current) {
+      item.classList.add('active');
+    } else if (step < current) {
+      item.classList.add('completed');
+      // Update dot to checkmark
+      const dot = item.querySelector('.form-step-dot');
+      if (dot && dot.textContent !== '✓') {
+        dot.textContent = '✓';
+      }
+    }
+  });
+}
 
 /* ============================================================
    FORM SUBMISSION
    ============================================================ */
-window.submitRegistration = async function() {
-  if (!Validator.validateStep(4)) return;
-  collectStepData(4);
+async function submitRegistration() {
+  if (!Validator.validateStep(10)) return;
 
-  const submitBtn = document.getElementById('submit-btn');
-  const errorBox = document.getElementById('error-box');
-  const successBox = document.getElementById('success-box');
-  const formWrap = document.getElementById('reg-form-wrap');
+  FormState.merge(collectStepData(10));
 
-  submitBtn.classList.add('loading');
+  const submitBtn   = document.getElementById('submit-btn');
+  const btnLabel    = submitBtn.querySelector('.btn-label');
+  const btnLoading  = submitBtn.querySelector('.btn-loading');
+  const errorBox    = document.getElementById('error-box');
+  const errorMsg    = document.getElementById('error-message');
+
+  // Set loading state
   submitBtn.disabled = true;
-  errorBox.hidden = true;
+  if (btnLabel)   btnLabel.hidden   = true;
+  if (btnLoading) btnLoading.hidden = false;
+  if (errorBox)   errorBox.hidden   = true;
 
   const payload = FormState.buildPayload();
-
-  console.log('PAYLOAD FINAL', JSON.stringify(payload, null, 2));
-
-  const result = await RegistrationService.submit(payload);
-
-  submitBtn.classList.remove('loading');
-  submitBtn.disabled = false;
+  const result  = await RegistrationService.submit(payload);
 
   if (result.success) {
-    formWrap.style.display = 'none';
-    successBox.removeAttribute('hidden');
-    successBox.focus();
-    loadAttendeeStats();
+    FormState.clearDraft();
+    document.getElementById('reg-form-wrap').hidden = true;
+    document.getElementById('success-box').hidden   = false;
   } else {
-    document.getElementById('error-message').innerHTML =
-      result.error || 'Submission failed. Please try again or email <a href="mailto:anton.clowes@vigsw.com">anton.clowes@vigsw.com</a>.';
-    errorBox.removeAttribute('hidden');
-    errorBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    submitBtn.disabled = false;
+    if (btnLabel)   btnLabel.hidden   = false;
+    if (btnLoading) btnLoading.hidden = true;
+
+    if (errorBox && errorMsg) {
+      errorMsg.textContent = result.error;
+      errorBox.hidden = false;
+      errorBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }
-};
+}
 
 /* ============================================================
-   AGENDA TABS
+   PROGRAMME TAB SWITCHER
    ============================================================ */
-window.showDay = function(event, id) {
-  const allContent = document.querySelectorAll('.day-content');
-  const allTabs = document.querySelectorAll('.day-tab');
-
-  allContent.forEach(d => {
-    d.classList.remove('active');
-    d.setAttribute('hidden', '');
+function showDay(event, dayId) {
+  // Deactivate all tabs
+  document.querySelectorAll('.day-tab').forEach(tab => {
+    tab.classList.remove('active');
+    tab.setAttribute('aria-selected', 'false');
   });
 
-  allTabs.forEach(t => {
-    t.classList.remove('active');
-    t.setAttribute('aria-selected', 'false');
+  // Hide all content panels
+  document.querySelectorAll('.day-content').forEach(panel => {
+    panel.classList.remove('active');
+    panel.hidden = true;
   });
 
-  const target = document.getElementById(`day-${id}`);
-  if (target) {
-    target.classList.add('active');
-    target.removeAttribute('hidden');
+  // Activate clicked tab
+  if (event && event.currentTarget) {
+    event.currentTarget.classList.add('active');
+    event.currentTarget.setAttribute('aria-selected', 'true');
   }
 
-  event.currentTarget.classList.add('active');
-  event.currentTarget.setAttribute('aria-selected', 'true');
-};
+  // Show matching content
+  const target = document.getElementById('day-' + dayId);
+  if (target) {
+    target.classList.add('active');
+    target.hidden = false;
+  }
+}
 
 /* ============================================================
    FAQ ACCORDION
    ============================================================ */
-window.toggleFaq = function(btn) {
-  const item = btn.parentElement;
-  const answer = item.querySelector('.faq-a');
-  const isOpen = item.classList.contains('open');
+function toggleFaq(btn) {
+  const isOpen  = btn.getAttribute('aria-expanded') === 'true';
+  const answer  = btn.nextElementSibling;
 
-  document.querySelectorAll('.faq-item').forEach(i => {
-    i.classList.remove('open');
-    i.querySelector('.faq-q')?.setAttribute('aria-expanded', 'false');
+  // Close all others
+  document.querySelectorAll('.faq-question[aria-expanded="true"]').forEach(other => {
+    if (other !== btn) {
+      other.setAttribute('aria-expanded', 'false');
+      const otherAnswer = other.nextElementSibling;
+      if (otherAnswer) otherAnswer.hidden = true;
+    }
   });
 
-  if (!isOpen) {
-    item.classList.add('open');
-    btn.setAttribute('aria-expanded', 'true');
-    if (answer) answer.removeAttribute('hidden');
-  }
-};
+  btn.setAttribute('aria-expanded', String(!isOpen));
+  if (answer) answer.hidden = isOpen;
+}
 
 /* ============================================================
    COUNTDOWN
    ============================================================ */
 function updateCountdown() {
-  const now = new Date();
-  const diff = CONFIG.EVENT_DATE - now;
+  const now  = Date.now();
+  const diff = CONFIG.EVENT_DATE.getTime() - now;
+
+  const cdDays  = document.getElementById('cd-days');
+  const cdHours = document.getElementById('cd-hours');
+  const cdMins  = document.getElementById('cd-mins');
+  const cdSecs  = document.getElementById('cd-secs');
+
+  if (!cdDays) return;
 
   if (diff <= 0) {
-    ['cd-days', 'cd-hours', 'cd-mins', 'cd-secs'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = '00';
-    });
+    cdDays.textContent = '0';
+    cdHours.textContent = '0';
+    cdMins.textContent = '0';
+    cdSecs.textContent = '0';
     return;
   }
 
-  const days    = Math.floor(diff / 86400000);
-  const hours   = Math.floor((diff % 86400000) / 3600000);
-  const minutes = Math.floor((diff % 3600000) / 60000);
-  const seconds = Math.floor((diff % 60000) / 1000);
-
   const pad = n => String(n).padStart(2, '0');
+  const days  = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const mins  = Math.floor((diff % 3600000)  / 60000);
+  const secs  = Math.floor((diff % 60000)    / 1000);
 
-  const cdDays = document.getElementById('cd-days');
-  const cdHrs  = document.getElementById('cd-hours');
-  const cdMins = document.getElementById('cd-mins');
-  const cdSecs = document.getElementById('cd-secs');
-
-  if (cdDays) cdDays.textContent = pad(days);
-  if (cdHrs)  cdHrs.textContent  = pad(hours);
-  if (cdMins) cdMins.textContent = pad(minutes);
-  if (cdSecs) cdSecs.textContent = pad(seconds);
+  cdDays.textContent  = days;
+  cdHours.textContent = pad(hours);
+  cdMins.textContent  = pad(mins);
+  cdSecs.textContent  = pad(secs);
 }
 
 /* ============================================================
-   NEW: ANIMATED STAT COUNTERS
-   Uses IntersectionObserver to trigger when stats strip is visible
-   ============================================================ */
-function animateCounter(el, target, suffix, duration) {
-  const start = performance.now();
-  const startVal = 0;
-
-  function step(timestamp) {
-    const elapsed = timestamp - start;
-    const progress = Math.min(elapsed / duration, 1);
-    // Ease out cubic
-    const eased = 1 - Math.pow(1 - progress, 3);
-    const current = Math.round(startVal + (target - startVal) * eased);
-    el.textContent = current + suffix;
-    if (progress < 1) requestAnimationFrame(step);
-  }
-
-  requestAnimationFrame(step);
-}
-
-function initStatCounters() {
-  const statNums = document.querySelectorAll('.stat-num[data-target]');
-  if (!statNums.length) return;
-
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const el = entry.target;
-        const target = parseInt(el.dataset.target, 10);
-        const suffix = el.dataset.suffix || '';
-        animateCounter(el, target, suffix, 1200);
-        observer.unobserve(el);
-      }
-    });
-  }, { threshold: 0.3 });
-
-  statNums.forEach(el => observer.observe(el));
-}
-
-/* ============================================================
-   SCROLL PROGRESS + NAV ACTIVE STATE
+   SCROLL PROGRESS + ACTIVE NAV LINKS
    ============================================================ */
 function updateScrollProgress() {
-  const scrollTop  = window.scrollY;
-  const docHeight  = document.documentElement.scrollHeight - window.innerHeight;
-  const progress   = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-  const bar        = document.getElementById('nav-progress-bar');
-  if (bar) bar.style.width = `${Math.min(progress, 100)}%`;
+  const bar = document.getElementById('nav-progress-bar');
+  if (!bar) return;
+  const scrollTop = window.scrollY || document.documentElement.scrollTop;
+  const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+  bar.style.width = scrollHeight > 0 ? (scrollTop / scrollHeight * 100) + '%' : '0%';
 }
 
 function updateNavActiveState() {
-  const sections = document.querySelectorAll('section[id]');
-  const navLinks = document.querySelectorAll('.nav-link[href^="#"]');
-  const scrollPos = window.scrollY + 100;
+  const sections = document.querySelectorAll('section[id], .countdown-bar');
+  const nav      = document.getElementById('main-nav');
+  const navHeight = nav ? nav.offsetHeight : 72;
 
   let current = '';
+
   sections.forEach(section => {
-    if (section.offsetTop <= scrollPos) {
-      current = section.id;
-    }
+    const top = section.getBoundingClientRect().top;
+    if (top <= navHeight + 40) current = section.id || '';
   });
 
-  navLinks.forEach(link => {
+  document.querySelectorAll('.nav-link').forEach(link => {
     link.classList.remove('active');
-    if (link.getAttribute('href') === `#${current}`) {
+    const href = link.getAttribute('href');
+    if (href && href === '#' + current) {
       link.classList.add('active');
     }
   });
@@ -507,7 +563,6 @@ function updateNavActiveState() {
 function initMobileNav() {
   const toggle  = document.getElementById('nav-toggle');
   const navMenu = document.getElementById('nav-menu');
-
   if (!toggle || !navMenu) return;
 
   toggle.addEventListener('click', () => {
@@ -532,22 +587,20 @@ function initMobileNav() {
 }
 
 /* ============================================================
-   ATTENDEE STATS — aggregate counts only
+   ATTENDEE STATS
    ============================================================ */
 async function loadAttendeeStats() {
   const stats = await RegistrationService.getStats();
 
   const confirmed = document.getElementById('stat-confirmed');
   const countries = document.getElementById('stat-countries');
-  const teams     = document.getElementById('stat-teams');
 
   if (confirmed) confirmed.textContent = stats.confirmed > 0 ? stats.confirmed : '—';
   if (countries) countries.textContent = stats.countries > 0 ? stats.countries : '—';
-  if (teams)     teams.textContent     = stats.teams     > 0 ? stats.teams     : '—';
 }
 
 /* ============================================================
-   INLINE FORM VALIDATION ON BLUR
+   INLINE FIELD VALIDATION
    ============================================================ */
 function initInlineValidation() {
   Object.keys(Validator.rules).forEach(id => {
@@ -555,17 +608,18 @@ function initInlineValidation() {
     if (!el) return;
 
     el.addEventListener('blur', () => {
-      const rule = Validator.rules[id];
-      const value = el.value.trim();
-      let error = '';
+      const rule   = Validator.rules[id];
+      const value  = el.value.trim();
+      const errId  = id.replace('f-', 'err-');
+      let error    = '';
 
       if (rule.required && !value) {
-        error = `${rule.label} is required.`;
+        error = rule.label + ' is required.';
       } else if (rule.pattern && value && !rule.pattern.test(value)) {
-        error = `Please enter a valid ${rule.label.toLowerCase()}.`;
+        error = 'Please enter a valid ' + rule.label.toLowerCase() + '.';
       }
 
-      Validator.setFieldError(el, id.replace('f-', 'err-'), error);
+      Validator.setFieldError(el, errId, error);
     });
 
     el.addEventListener('input', () => {
@@ -579,9 +633,160 @@ function initInlineValidation() {
 }
 
 /* ============================================================
+   ADMIN PANEL
+   ============================================================ */
+let adminRegistrations = [];
+
+async function openAdmin() {
+  const panel = document.getElementById('admin-panel');
+  if (!panel) return;
+  panel.hidden = false;
+  document.body.style.overflow = 'hidden';
+
+  const tbody = document.getElementById('admin-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="admin-loading">Loading registrations…</td></tr>';
+
+  adminRegistrations = await RegistrationService.getAll();
+  renderAdminTable(adminRegistrations);
+  populateCountryFilter(adminRegistrations);
+
+  const total = document.getElementById('admin-total');
+  if (total) total.textContent = adminRegistrations.length;
+}
+
+function closeAdmin() {
+  const panel = document.getElementById('admin-panel');
+  if (panel) panel.hidden = true;
+  document.body.style.overflow = '';
+}
+
+function populateCountryFilter(rows) {
+  const sel = document.getElementById('admin-filter-country');
+  if (!sel) return;
+  const countries = [...new Set(rows.map(r => r.country_of_residence).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">All countries</option>';
+  countries.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = c;
+    sel.appendChild(opt);
+  });
+}
+
+function filterAdmin() {
+  const nameQ    = (document.getElementById('admin-search-name')?.value   || '').toLowerCase();
+  const emailQ   = (document.getElementById('admin-search-email')?.value  || '').toLowerCase();
+  const countryQ = (document.getElementById('admin-filter-country')?.value || '').toLowerCase();
+  const visaQ    = (document.getElementById('admin-filter-visa')?.value    || '').toLowerCase();
+
+  const filtered = adminRegistrations.filter(r => {
+    const name  = (r.full_name  || '').toLowerCase();
+    const email = (r.email      || '').toLowerCase();
+    const country = (r.country_of_residence || '').toLowerCase();
+    const visa    = (r.visa_required || '').toLowerCase();
+
+    return (
+      (!nameQ    || name.includes(nameQ))    &&
+      (!emailQ   || email.includes(emailQ))  &&
+      (!countryQ || country.includes(countryQ)) &&
+      (!visaQ    || visa === visaQ)
+    );
+  });
+
+  renderAdminTable(filtered);
+}
+
+function renderAdminTable(rows) {
+  const tbody = document.getElementById('admin-tbody');
+  const countEl = document.getElementById('admin-count');
+  if (!tbody) return;
+
+  if (countEl) countEl.textContent = rows.length;
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="admin-loading">No registrations found.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const submitted = r.submitted_at
+      ? new Date(r.submitted_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : '—';
+    return `<tr>
+      <td>${escHtml(r.full_name || '—')}</td>
+      <td>${escHtml(r.email || '—')}</td>
+      <td>${escHtml(r.job_title || '—')}</td>
+      <td>${escHtml(r.business_unit || '—')}</td>
+      <td>${escHtml(r.country_of_residence || '—')}</td>
+      <td>${escHtml(r.visa_required || '—')}</td>
+      <td>${escHtml(r.tshirt_size || '—')}</td>
+      <td>${submitted}</td>
+    </tr>`;
+  }).join('');
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function exportCSV() {
+  if (adminRegistrations.length === 0) {
+    alert('No registrations to export.');
+    return;
+  }
+
+  const columns = [
+    'full_name', 'email', 'whatsapp_number', 'job_title', 'business_unit',
+    'office_location', 'office_country', 'country_of_residence', 'departure_city',
+    'visa_required', 'yellow_fever_required', 'arrival_date', 'arrival_time',
+    'departure_date', 'departure_time', 'airport_transfer_arrival',
+    'airport_transfer_departure', 'dietary_restrictions', 'food_allergies',
+    'dietary_notes', 'medical_conditions', 'medications', 'carries_epipen',
+    'emergency_contact_name', 'emergency_contact_relationship', 'emergency_contact_phone',
+    'travel_insurance', 'mobility_requirements', 'accessibility_requirements',
+    'preferred_topics', 'tshirt_size', 'privacy_accepted', 'terms_accepted', 'submitted_at',
+  ];
+
+  const header = columns.map(c => '"' + c + '"').join(',');
+  const rows   = adminRegistrations.map(r =>
+    columns.map(c => {
+      const val = r[c];
+      if (val === null || val === undefined) return '';
+      return '"' + String(val).replace(/"/g, '""') + '"';
+    }).join(',')
+  );
+
+  const csv   = [header, ...rows].join('\r\n');
+  const blob  = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url   = URL.createObjectURL(blob);
+  const link  = document.createElement('a');
+  link.href   = url;
+  link.download = 'datamine-conference-2026-registrations.csv';
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ============================================================
+   KEYBOARD SHORTCUT — ESC closes admin
+   ============================================================ */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const panel = document.getElementById('admin-panel');
+    if (panel && !panel.hidden) closeAdmin();
+  }
+});
+
+/* ============================================================
    INIT
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
+  // Restore draft
+  FormState.loadDraft();
+
   // Countdown
   updateCountdown();
   setInterval(updateCountdown, 1000);
@@ -591,7 +796,6 @@ document.addEventListener('DOMContentLoaded', () => {
     updateScrollProgress();
     updateNavActiveState();
   };
-
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
@@ -601,81 +805,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Inline validation
   initInlineValidation();
 
-  // Animated stat counters (new section)
-  initStatCounters();
-
-  // Load attendee stats (aggregate only)
+  // Stats
   loadAttendeeStats();
 
-  // Ensure first agenda tab is visible
+  // Programme tab default
   const firstTab = document.querySelector('.day-tab.active');
   if (firstTab) {
     const id = firstTab.getAttribute('aria-controls')?.replace('day-', '');
     if (id) showDay({ currentTarget: firstTab }, id);
   }
-});
 
-/*
- * ============================================================
- * POWER AUTOMATE FLOW — SETUP CHECKLIST
- * ============================================================
- *
- * 1. In Power Automate, create a new flow:
- *    "When an HTTP request is received" trigger
- *    Method: POST
- *
- * 2. Paste this JSON schema into the trigger's "Request Body
- *    JSON Schema" field so Power Automate parses all fields:
- *
- *    {
- *      "type": "object",
- *      "properties": {
- *        "first_name":                   { "type": "string" },
- *        "last_name":                    { "type": "string" },
- *        "email":                        { "type": "string" },
- *        "team":                         { "type": "string" },
- *        "role":                         { "type": "string" },
- *        "manager":                      { "type": "string" },
- *        "office_location":              { "type": "string" },
- *        "attendance_status":            { "type": "string" },
- *        "arrival_date":                 { "type": "string" },
- *        "departure_date":               { "type": "string" },
- *        "arrival_time":                 { "type": "string" },
- *        "departure_time":               { "type": "string" },
- *        "airline":                      { "type": "string" },
- *        "flight_number":                { "type": "string" },
- *        "departure_airport":            { "type": "string" },
- *        "shuttle_required":             { "type": "string" },
- *        "luggage_count":                { "type": "string" },
- *        "visa_letter_required":         { "type": "string" },
- *        "passport_nationality":         { "type": "string" },
- *        "emergency_contact_name":       { "type": "string" },
- *        "emergency_contact_phone":      { "type": "string" },
- *        "emergency_contact_relation":   { "type": "string" },
- *        "check_in_date":                { "type": "string" },
- *        "check_out_date":               { "type": "string" },
- *        "room_type":                    { "type": "string" },
- *        "roommate_preference":          { "type": "string" },
- *        "tshirt_size":                  { "type": "string" },
- *        "dietary_requirements":         { "type": "string" },
- *        "accessibility_requirements":   { "type": "string" },
- *        "primary_interest":             { "type": "string" },
- *        "workshop_tracks":              { "type": "string" },
- *        "hackathon_interest":           { "type": "string" },
- *        "expectations":                 { "type": "string" },
- *        "notes":                        { "type": "string" },
- *        "submitted_at":                 { "type": "string" }
- *      }
- *    }
- *
- * 3. Add a "Create item" SharePoint action. Map each dynamic
- *    content token to its matching SharePoint column.
- *
- * 4. Add a "Response" action at the end:
- *    Status code: 200
- *    Body: { "status": "ok" }
- *
- * 5. Save the flow. Copy the HTTP POST URL from the trigger step.
- *
- * ============================================================
- */
+  // Admin panel URL trigger
+  if (new URLSearchParams(window.location.search).get('admin') === 'true') {
+    openAdmin();
+  }
+});
