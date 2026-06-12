@@ -1876,9 +1876,10 @@ footer {
 .footer-logo-image {
   height: 38px;
   width: auto;
+  max-width: 160px;
   display: block;
-  filter: brightness(0) invert(1);
-  opacity: 0.85;
+  object-fit: contain;
+  opacity: 0.9;
 }
 
 .footer-logo-fallback {
