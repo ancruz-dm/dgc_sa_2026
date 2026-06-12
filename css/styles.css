@@ -1022,6 +1022,157 @@ section {
 .tag-programme { background: var(--brand-primary-light); color: var(--brand-primary-dark); }
 
 /* ============================================================
+   WHERE WE MEET — VENUE
+   ============================================================ */
+#venue {
+  padding: var(--section-padding) var(--container-padding);
+  background: var(--bg-secondary);
+}
+
+.venue-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3.5rem;
+  align-items: start;
+  margin-bottom: 2rem;
+}
+
+.venue-photo-wrap {
+  position: relative;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.venue-photo {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  display: block;
+  background: var(--bg-subtle);
+  min-height: 280px;
+}
+
+.venue-photo-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.65rem 1rem;
+  background: rgba(0,0,0,0.45);
+  color: rgba(255,255,255,0.88);
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+}
+
+.venue-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.venue-address {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 1.25rem;
+  letter-spacing: 0.01em;
+}
+
+.venue-desc {
+  font-size: 0.975rem;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  margin-bottom: 0.85rem;
+}
+
+.venue-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1.75rem;
+}
+
+.venue-stat {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.1rem;
+}
+
+.venue-stat-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  background: var(--brand-primary-light);
+  border: 1px solid rgba(99,139,163,0.18);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-primary-dark);
+  margin-top: 0.1rem;
+}
+
+.venue-stat-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.15rem;
+}
+
+.venue-stat-sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.venue-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--brand-primary-dark);
+  text-decoration: none;
+  border-bottom: 1.5px solid var(--brand-accent);
+  padding-bottom: 0.1rem;
+  transition: color var(--transition-base), border-color var(--transition-base);
+}
+
+.venue-link:hover {
+  color: var(--brand-primary);
+  border-color: var(--brand-primary);
+}
+
+.venue-map-wrap {
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 860px) {
+  .venue-layout {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  .venue-stat-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .venue-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
    TRAVEL INFORMATION
    ============================================================ */
 .travel-grid {
