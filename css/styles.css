@@ -382,6 +382,21 @@ section {
   background: var(--brand-primary-light);
 }
 
+/* Secondary button on dark/hero backgrounds — needs higher contrast */
+.hero .btn-secondary {
+  color: rgba(255,255,255,0.88);
+  border-color: rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.hero .btn-secondary:hover {
+  color: #ffffff;
+  border-color: rgba(255,255,255,0.75);
+  background: rgba(255,255,255,0.14);
+}
+
 .btn-ghost {
   display: inline-flex;
   align-items: center;
