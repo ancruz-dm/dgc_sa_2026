@@ -89,7 +89,7 @@ const RegistrationService = {
   async getAll() {
     try {
       const response = await fetch(
-        CONFIG.SUPABASE_URL + '/rest/v1/registrations?select=*&order=created_at.desc'
+        CONFIG.SUPABASE_URL + '/rest/v1/registrations?select=*&order=created_at.desc',
         {
           headers: {
             'apikey':        CONFIG.SUPABASE_ANON_KEY,
