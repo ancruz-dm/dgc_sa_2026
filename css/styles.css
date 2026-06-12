@@ -2095,7 +2095,8 @@ footer {
 }
 
 .venue-map {
-  margin-top: 3rem;
+    margin-top: 3rem;
+    width: 100%;
 }
 
 .venue-map h3 {
@@ -2103,13 +2104,12 @@ footer {
 }
 
 .venue-map iframe {
-  width: 100%;
-  height: 450px;
-  border: 0;
-  border-radius: 20px;
-  overflow: hidden;
+    width: 100%;
+    height: 600px;
+    border: 0;
+    border-radius: 16px;
+    display: block;
 }
-
 
 /* Mobile */
 
