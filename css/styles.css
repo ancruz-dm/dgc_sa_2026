@@ -2059,20 +2059,39 @@ footer {
 }
 
 .venue-fact {
-  background: #ffffff;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  border-radius: 16px;
-  padding: 1rem;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 16px;
+    padding: 1.25rem;
+
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+    transition: all 0.25s ease;
 }
 
 .venue-fact h4 {
-  margin-bottom: .5rem;
-  font-size: .95rem;
+    margin-bottom: 0.4rem;
+    font-size: 0.95rem;
 }
 
 .venue-fact p {
   margin: 0;
   color: var(--color-text-muted);
+}
+
+.venue-fact:hover {
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.venue-stat {
+  display: block;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--brand-primary);
+  margin-bottom: 0.6rem;
+  line-height: 1;
 }
 
 .venue-map {
