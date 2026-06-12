@@ -912,32 +912,36 @@ section {
 .day-content.active { display: block; }
 
 .day-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding: 1.5rem 0;
+  padding: 1.25rem 0 1.125rem;
   border-bottom: 1px solid var(--border-light);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
-.day-header-left {
+.day-header-meta {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+
+.day-header-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 .day-header h3 {
-  font-size: 1.125rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
+  margin: 0 0 0.3rem;
 }
 
 .day-header p {
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   color: var(--text-secondary);
-  max-width: 500px;
+  margin: 0;
+  line-height: 1.6;
 }
 
 .day-badge {
@@ -946,8 +950,8 @@ section {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  padding: 0.25rem 0.65rem;
-  border-radius: var(--radius-full);
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-sm);
 }
 
 .day-badge-arrivals { background: #E0F2FE; color: #0369A1; }
@@ -1048,15 +1052,16 @@ section {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 3rem;
-  align-items: start;
+  align-items: stretch;
   margin-bottom: 2rem;
 }
 
-/* Photo grid — main + two thumbs */
+/* Photo grid — main + two thumbs, fills full column height */
 .venue-photos {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  height: 100%;
 }
 
 .venue-photo-main {
@@ -1064,11 +1069,13 @@ section {
   border-radius: var(--radius-xl);
   overflow: hidden;
   box-shadow: var(--shadow-md);
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 .venue-photo-main img {
   width: 100%;
-  height: 230px;
+  height: 100%;
   object-fit: cover;
   display: block;
   background: var(--bg-subtle);
@@ -1078,6 +1085,7 @@ section {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+  flex: 0 0 auto;
 }
 
 .venue-photo-thumb {
@@ -1089,7 +1097,7 @@ section {
 
 .venue-photo-thumb img {
   width: 100%;
-  height: 135px;
+  height: 140px;
   object-fit: cover;
   display: block;
   background: var(--bg-subtle);
@@ -1225,6 +1233,7 @@ section {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
+  .venue-photos { height: auto; }
   .venue-photo-main img { height: 260px; }
   .venue-photo-thumb img { height: 150px; }
 }
@@ -1923,9 +1932,10 @@ footer {
 .footer-logo-image {
   height: 38px;
   width: auto;
+  max-width: 160px;
   display: block;
-  filter: brightness(0) invert(1);
-  opacity: 0.85;
+  object-fit: contain;
+  opacity: 0.9;
 }
 
 .footer-logo-fallback {
@@ -2236,5 +2246,5 @@ footer {
 
   .form-step-panel { padding: 1.5rem; }
 
-  .day-header { flex-direction: column; gap: 0.75rem; }
+  .day-header { padding: 1rem 0 0.875rem; }
 }
