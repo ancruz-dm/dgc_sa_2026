@@ -2110,9 +2110,6 @@ footer {
   overflow: hidden;
 }
 
-.venue-map-actions {
-  margin-top: 1rem;
-}
 
 /* Mobile */
 
@@ -2170,4 +2167,38 @@ footer {
 .btn-hero-secondary:hover {
     background: rgba(255,255,255,.08);
     border-color: rgba(255,255,255,.4);
+}
+.venue-map {
+    background: #ffffff;
+    border: 1px solid rgba(15,23,42,.08);
+    border-radius: 20px;
+    padding: 1.5rem;
+    margin-top: 3rem;
+}
+
+.venue-map-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.venue-map-eyebrow {
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--brand-primary);
+    margin-bottom: .25rem;
+}
+
+.venue-map h3 {
+    margin: 0;
+}
+
+.venue-map iframe {
+    width: 100%;
+    height: 500px;
+    border: 0;
+    border-radius: 16px;
 }
