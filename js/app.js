@@ -692,7 +692,7 @@ function filterAdmin() {
     const name  = (r.full_name  || '').toLowerCase();
     const email = (r.email      || '').toLowerCase();
     const country = (r.country_of_residence || '').toLowerCase();
-    const visa    = (r.visa_required || '').toLowerCase();
+    const visa    = (r.visa_status || '').toLowerCase();
 
     return (
       (!nameQ    || name.includes(nameQ))    &&
@@ -736,7 +736,7 @@ function renderAdminTable(rows) {
       <td>${escHtml(r.job_title || '—')}</td>
       <td>${escHtml(r.business_unit || '—')}</td>
       <td>${escHtml(r.country_of_residence || '—')}</td>
-      <td>${escHtml(r.visa_required || '—')}</td>
+      <td>${escHtml(r.visa_status || '—')}</td>
       <td>${escHtml(r.tshirt_size || '—')}</td>
       <td>${submitted}</td>
     </tr>`;
@@ -767,7 +767,7 @@ const columns = [
   'office_country',
   'country_of_residence',
   'departure_city',
-  'visa_required',
+  'visa_status',
   'yellow_fever_certificate_required',
   'arrival_datetime',
   'departure_datetime',
