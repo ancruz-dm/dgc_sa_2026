@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <title>DGC 2026 · Executive Dashboard</title>
+  <title>Datamine Global Conference 2026 · Executive Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -178,6 +178,42 @@
     .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--brand); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 0.5rem; vertical-align: middle; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* Drill-down header */
+    .drilldown-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;
+    }
+    .drilldown-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .drilldown-count { margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-3); }
+
+    /* Slicers */
+    .slicers-wrap {
+      display: flex; flex-wrap: wrap; gap: 0.75rem;
+      padding: 1rem; background: var(--bg); border-radius: 10px;
+      border: 1px solid var(--border); margin-bottom: 1.25rem;
+    }
+    .slicer-group { display: flex; flex-direction: column; gap: 0.3rem; min-width: 140px; }
+    .slicer-group.slicer-search { min-width: 200px; flex: 1; }
+    .slicer-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
+    .slicer-select, .slicer-input {
+      padding: 0.45rem 0.75rem; font-size: 0.82rem; font-family: inherit;
+      border: 1px solid var(--border); border-radius: 7px;
+      background: var(--surface); color: var(--text); outline: none;
+      transition: border-color 0.15s;
+    }
+    .slicer-select:focus, .slicer-input:focus { border-color: var(--brand); }
+
+    /* Export buttons */
+    .btn-export {
+      padding: 0.4rem 0.9rem; font-size: 0.78rem; font-weight: 600;
+      background: var(--brand-light); color: var(--brand-dark);
+      border: 1px solid var(--border); border-radius: 6px;
+      cursor: pointer; font-family: inherit; transition: background 0.15s;
+    }
+    .btn-export:hover { background: #d4edf5; }
+    .btn-export-xl { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; }
+    .btn-export-xl:hover { background: #c8e6c9; }
+
     /* Drill-down table */
     .btn-clear {
       padding: 0.4rem 0.9rem; font-size: 0.78rem; font-weight: 600;
@@ -187,15 +223,13 @@
     }
     .btn-clear:hover { background: #d4edf5; }
 
-    .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+    .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); max-height: 520px; overflow-y: auto; }
 
     .drilldown-table {
       width: 100%; border-collapse: collapse;
       font-size: 0.78rem; white-space: nowrap;
     }
-    .drilldown-table thead tr {
-      background: var(--bg);
-    }
+    .drilldown-table thead tr { background: var(--bg); }
     .drilldown-table th {
       padding: 0.65rem 1rem; text-align: left;
       font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
@@ -205,7 +239,7 @@
     .drilldown-table td {
       padding: 0.65rem 1rem; color: var(--text-2);
       border-bottom: 1px solid var(--border);
-      max-width: 200px; overflow: hidden; text-overflow: ellipsis;
+      max-width: 220px; overflow: hidden; text-overflow: ellipsis;
     }
     .drilldown-table td:first-child { font-weight: 600; color: var(--text); }
     .drilldown-table tbody tr:last-child td { border-bottom: none; }
@@ -374,44 +408,137 @@
         </div>
       </div>
 
-      <!-- Drill-down table -->
-      <div class="grid-1" id="drilldown-wrap" style="display:none">
+      <!-- Slicers + Drill-down table — always visible -->
+      <div class="grid-1" id="drilldown-wrap">
         <div class="chart-card">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem">
+
+          <!-- Header -->
+          <div class="drilldown-header">
             <div>
-              <div class="chart-title">Drill-down</div>
+              <div class="chart-title">Delegate List</div>
               <div class="chart-subtitle" id="drilldown-title">All registrations</div>
             </div>
-            <button class="btn-clear" id="btn-clear" onclick="clearDrilldown()">✕ Clear filter</button>
+            <div class="drilldown-actions">
+              <button class="btn-export" onclick="exportCSV()">↓ CSV</button>
+              <button class="btn-export btn-export-xl" onclick="exportXLSX()">↓ XLSX</button>
+              <button class="btn-clear" id="btn-clear" onclick="clearDrilldown()">✕ Clear filters</button>
+            </div>
           </div>
+
+          <!-- Slicers -->
+          <div class="slicers-wrap">
+            <div class="slicer-group">
+              <label class="slicer-label">Country</label>
+              <select class="slicer-select" id="sl-country" onchange="applySlicers()">
+                <option value="">All countries</option>
+              </select>
+            </div>
+            <div class="slicer-group">
+              <label class="slicer-label">Business Unit</label>
+              <select class="slicer-select" id="sl-unit" onchange="applySlicers()">
+                <option value="">All units</option>
+              </select>
+            </div>
+            <div class="slicer-group">
+              <label class="slicer-label">Visa status</label>
+              <select class="slicer-select" id="sl-visa" onchange="applySlicers()">
+                <option value="">All</option>
+                <option value="no">Visa-free</option>
+                <option value="yes">Visa needed</option>
+                <option value="unsure">Unsure</option>
+                <option value="support-needed">Support letter needed</option>
+              </select>
+            </div>
+            <div class="slicer-group">
+              <label class="slicer-label">Arrival transfer</label>
+              <select class="slicer-select" id="sl-transfer-arr" onchange="applySlicers()">
+                <option value="">All</option>
+                <option value="yes">Requested</option>
+                <option value="no">Not needed</option>
+                <option value="unsure">Unsure</option>
+              </select>
+            </div>
+            <div class="slicer-group">
+              <label class="slicer-label">Departure transfer</label>
+              <select class="slicer-select" id="sl-transfer-dep" onchange="applySlicers()">
+                <option value="">All</option>
+                <option value="yes">Requested</option>
+                <option value="no">Not needed</option>
+                <option value="unsure">Unsure</option>
+              </select>
+            </div>
+            <div class="slicer-group">
+              <label class="slicer-label">Insurance</label>
+              <select class="slicer-select" id="sl-insurance" onchange="applySlicers()">
+                <option value="">All</option>
+                <option value="yes">Confirmed</option>
+                <option value="arranging">Arranging</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            <div class="slicer-group">
+              <label class="slicer-label">EpiPen</label>
+              <select class="slicer-select" id="sl-epipen" onchange="applySlicers()">
+                <option value="">All</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </div>
+            <div class="slicer-group">
+              <label class="slicer-label">Dietary</label>
+              <select class="slicer-select" id="sl-dietary" onchange="applySlicers()">
+                <option value="">All</option>
+                <option value="has">Has restrictions</option>
+                <option value="none">No restrictions</option>
+              </select>
+            </div>
+            <div class="slicer-group slicer-search">
+              <label class="slicer-label">Search</label>
+              <input class="slicer-input" id="sl-search" placeholder="Name or email…" oninput="applySlicers()">
+            </div>
+          </div>
+
+          <!-- Table -->
           <div class="table-wrap">
             <table class="drilldown-table" id="drilldown-table">
               <thead>
                 <tr>
                   <th>Name</th>
                   <th>Email</th>
+                  <th>WhatsApp</th>
                   <th>Country</th>
                   <th>Departure city</th>
                   <th>Business unit</th>
                   <th>Job title</th>
+                  <th>Office location</th>
+                  <th>Office country</th>
                   <th>Arrival</th>
                   <th>Departure</th>
                   <th>Transfer arr.</th>
                   <th>Transfer dep.</th>
-                  <th>Dietary</th>
-                  <th>Allergies</th>
-                  <th>Medical</th>
-                  <th>EpiPen</th>
-                  <th>T-shirt</th>
-                  <th>Insurance</th>
+                  <th>Yellow fever</th>
                   <th>Visa</th>
+                  <th>Dietary restrictions</th>
+                  <th>Allergies</th>
+                  <th>Dietary notes</th>
+                  <th>Medical conditions</th>
+                  <th>Medications</th>
+                  <th>EpiPen</th>
+                  <th>Emergency name</th>
+                  <th>Emergency relation</th>
+                  <th>Emergency phone</th>
+                  <th>Insurance</th>
+                  <th>Mobility</th>
+                  <th>Accessibility</th>
+                  <th>Topics</th>
+                  <th>T-shirt</th>
                   <th>Submitted</th>
                 </tr>
               </thead>
               <tbody id="drilldown-tbody"></tbody>
             </table>
           </div>
-          <div style="margin-top:0.75rem;font-size:0.75rem;color:var(--text-3)" id="drilldown-count"></div>
+          <div class="drilldown-count" id="drilldown-count"></div>
         </div>
       </div>
 
@@ -522,13 +649,15 @@ async function loadDashboard() {
 
 function renderDashboard(data) {
   allData = data;
-  clearDrilldown();
+  activeFilter = null;
+  populateSlicers(data);
+  renderTable(data);
   const n = data.length;
 
   // ── KPIs ──
   setText('k-total', n);
   document.getElementById('k-total').closest('.kpi-card').style.cursor = 'pointer';
-  document.getElementById('k-total').closest('.kpi-card').onclick = () => showDrilldown(allData, 'All delegates');
+  document.getElementById('k-total').closest('.kpi-card').onclick = () => clearDrilldown();
   const countries = unique(data, 'country_of_residence');
   setText('k-countries', countries.length);
   const units = unique(data, 'business_unit');
@@ -539,8 +668,10 @@ function renderDashboard(data) {
   setText('k-transfers', transfers);
   document.getElementById('k-transfers').closest('.kpi-card').style.cursor = 'pointer';
   document.getElementById('k-transfers').closest('.kpi-card').onclick = () => {
-    const f = allData.filter(r => r.airport_transfer_arrival === 'yes' || r.airport_transfer_departure === 'yes');
-    showDrilldown(f, 'Transfer requested');
+    document.getElementById('sl-transfer-arr').value = 'yes';
+    activeFilter = null;
+    document.getElementById('drilldown-title').textContent = 'Transfer requested';
+    applySlicers();
   };
 
   // ── Countries bar chart ──
@@ -709,8 +840,241 @@ function renderGroupedBar(id, labels, datasets) {
   });
 }
 
-// ── DRILLDOWN ─────────────────────────────────────────────
+// ── DRILLDOWN & SLICERS ───────────────────────────────────
 let allData = [];
+let activeFilter = null; // { field, value, label } from chart click
+
+function populateSlicers(data) {
+  const countries = [...new Set(data.map(r => r.country_of_residence).filter(Boolean))].sort();
+  const units     = [...new Set(data.map(r => r.business_unit).filter(Boolean))].sort();
+
+  const slCountry = document.getElementById('sl-country');
+  const slUnit    = document.getElementById('sl-unit');
+
+  slCountry.innerHTML = '<option value="">All countries</option>' +
+    countries.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  slUnit.innerHTML = '<option value="">All units</option>' +
+    units.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+}
+
+function applySlicers() {
+  const country  = document.getElementById('sl-country').value;
+  const unit     = document.getElementById('sl-unit').value;
+  const visa     = document.getElementById('sl-visa').value;
+  const tArr     = document.getElementById('sl-transfer-arr').value;
+  const tDep     = document.getElementById('sl-transfer-dep').value;
+  const insurance= document.getElementById('sl-insurance').value;
+  const epipen   = document.getElementById('sl-epipen').value;
+  const dietary  = document.getElementById('sl-dietary').value;
+  const search   = document.getElementById('sl-search').value.toLowerCase().trim();
+
+  let filtered = allData;
+  if (activeFilter) {
+    if (activeFilter.field === '_date_') {
+      filtered = filtered.filter(r => r.created_at && r.created_at.slice(0,10) === activeFilter.rawVal);
+    } else {
+      filtered = filtered.filter(r => {
+        const v = r[activeFilter.field] ?? '';
+        return activeFilter.rawVal !== undefined ? String(v) === activeFilter.rawVal : (r[activeFilter.field] || 'Not specified') === activeFilter.label;
+      });
+    }
+  }
+  if (country)   filtered = filtered.filter(r => r.country_of_residence === country);
+  if (unit)      filtered = filtered.filter(r => r.business_unit === unit);
+  if (visa)      filtered = filtered.filter(r => (r.visa_status ?? '') === visa);
+  if (tArr)      filtered = filtered.filter(r => (r.airport_transfer_arrival ?? '') === tArr);
+  if (tDep)      filtered = filtered.filter(r => (r.airport_transfer_departure ?? '') === tDep);
+  if (insurance) filtered = filtered.filter(r => (r.travel_insurance_confirmed ?? '') === insurance);
+  if (epipen)    filtered = filtered.filter(r => String(r.carries_epipen ?? 'false') === epipen);
+  if (dietary === 'has')  filtered = filtered.filter(r => r.dietary_restrictions && r.dietary_restrictions.toLowerCase() !== 'none');
+  if (dietary === 'none') filtered = filtered.filter(r => !r.dietary_restrictions || r.dietary_restrictions.toLowerCase() === 'none');
+  if (search)    filtered = filtered.filter(r =>
+    (r.full_name || '').toLowerCase().includes(search) ||
+    (r.work_email || '').toLowerCase().includes(search)
+  );
+
+  renderTable(filtered);
+}
+
+function showDrilldown(title, label, field, rawVal) {
+  activeFilter = field ? { field, rawVal, label } : null;
+  document.getElementById('drilldown-title').textContent = title;
+  ['sl-country','sl-unit','sl-visa','sl-transfer-arr','sl-transfer-dep','sl-insurance','sl-epipen','sl-dietary','sl-search']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  applySlicers();
+}
+
+function clearDrilldown() {
+  activeFilter = null;
+  document.getElementById('drilldown-title').textContent = 'All registrations';
+  ['sl-country','sl-unit','sl-visa','sl-transfer-arr','sl-transfer-dep','sl-insurance','sl-epipen','sl-dietary','sl-search']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  renderTable(allData);
+}
+
+function renderTable(rows) {
+  const tbody = document.getElementById('drilldown-tbody');
+  document.getElementById('drilldown-count').textContent =
+    `${rows.length} ${rows.length === 1 ? 'delegate' : 'delegates'}`;
+
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="30" style="text-align:center;color:var(--text-3);padding:2rem">No delegates match this filter.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const arr = fmtDt(r.arrival_datetime);
+    const dep = fmtDt(r.departure_datetime);
+    const sub = r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+
+    return `<tr>
+      <td title="${esc(r.full_name)}">${esc(r.full_name || '—')}</td>
+      <td title="${esc(r.work_email)}">${esc(r.work_email || '—')}</td>
+      <td>${esc(r.whatsapp_number || '—')}</td>
+      <td>${esc(r.country_of_residence || '—')}</td>
+      <td>${esc(r.departure_city || '—')}</td>
+      <td>${esc(r.business_unit || '—')}</td>
+      <td>${esc(r.job_title || '—')}</td>
+      <td>${esc(r.office_location || '—')}</td>
+      <td>${esc(r.office_country || '—')}</td>
+      <td>${arr}</td>
+      <td>${dep}</td>
+      <td>${yesNoTag(r.airport_transfer_arrival)}</td>
+      <td>${yesNoTag(r.airport_transfer_departure)}</td>
+      <td>${esc(r.yellow_fever_certificate_required || '—')}</td>
+      <td>${esc(r.visa_status || '—')}</td>
+      <td>${esc(r.dietary_restrictions || '—')}</td>
+      <td>${esc(r.food_allergies || '—')}</td>
+      <td title="${esc(r.dietary_notes)}">${esc(trunc(r.dietary_notes))}</td>
+      <td>${medTag(r.medical_conditions)}</td>
+      <td>${esc(r.medications || '—')}</td>
+      <td>${r.carries_epipen ? '<span class="tag-warn">Yes</span>' : '<span class="tag-no">No</span>'}</td>
+      <td>${esc(r.emergency_contact_name || '—')}</td>
+      <td>${esc(r.emergency_contact_relationship || '—')}</td>
+      <td>${esc(r.emergency_contact_phone || '—')}</td>
+      <td>${insuranceTag(r.travel_insurance_confirmed)}</td>
+      <td>${esc(trunc(r.mobility_requirements))}</td>
+      <td>${esc(trunc(r.accessibility_requirements))}</td>
+      <td title="${esc(r.preferred_topics)}">${esc(trunc(r.preferred_topics))}</td>
+      <td>${esc(r.tshirt_size || '—')}</td>
+      <td>${sub}</td>
+    </tr>`;
+  }).join('');
+}
+
+function trunc(val, n = 40) {
+  if (!val) return '—';
+  return val.length > n ? val.slice(0, n) + '…' : val;
+}
+
+function fmtDt(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+// ── EXPORTS ───────────────────────────────────────────────
+const EXPORT_COLS = [
+  ['full_name','Name'], ['work_email','Email'], ['whatsapp_number','WhatsApp'],
+  ['country_of_residence','Country'], ['departure_city','Departure city'],
+  ['business_unit','Business unit'], ['job_title','Job title'],
+  ['office_location','Office location'], ['office_country','Office country'],
+  ['arrival_datetime','Arrival'], ['departure_datetime','Departure'],
+  ['airport_transfer_arrival','Transfer arrival'], ['airport_transfer_departure','Transfer departure'],
+  ['yellow_fever_certificate_required','Yellow fever'], ['visa_status','Visa'],
+  ['dietary_restrictions','Dietary restrictions'], ['food_allergies','Food allergies'],
+  ['dietary_notes','Dietary notes'], ['medical_conditions','Medical conditions'],
+  ['medications','Medications'], ['carries_epipen','EpiPen'],
+  ['emergency_contact_name','Emergency name'], ['emergency_contact_relationship','Emergency relation'],
+  ['emergency_contact_phone','Emergency phone'], ['travel_insurance_confirmed','Insurance'],
+  ['mobility_requirements','Mobility'], ['accessibility_requirements','Accessibility'],
+  ['preferred_topics','Preferred topics'], ['tshirt_size','T-shirt'],
+  ['privacy_policy_accepted','Privacy accepted'], ['terms_accepted','Terms accepted'],
+  ['created_at','Submitted'],
+];
+
+function getVisibleRows() {
+  // Export what's currently in the table (respects slicers)
+  const trs = document.querySelectorAll('#drilldown-tbody tr');
+  // Re-filter from allData based on current slicer state
+  const country  = document.getElementById('sl-country').value;
+  const unit     = document.getElementById('sl-unit').value;
+  const visa     = document.getElementById('sl-visa').value;
+  const tArr     = document.getElementById('sl-transfer-arr').value;
+  const tDep     = document.getElementById('sl-transfer-dep').value;
+  const insurance= document.getElementById('sl-insurance').value;
+  const epipen   = document.getElementById('sl-epipen').value;
+  const dietary  = document.getElementById('sl-dietary').value;
+  const search   = document.getElementById('sl-search').value.toLowerCase().trim();
+
+  let filtered = allData;
+  if (activeFilter) filtered = filtered.filter(r => {
+    const v = r[activeFilter.field] ?? '';
+    return activeFilter.rawVal !== undefined ? String(v) === activeFilter.rawVal : (r[activeFilter.field] || 'Not specified') === activeFilter.label;
+  });
+  if (country)   filtered = filtered.filter(r => r.country_of_residence === country);
+  if (unit)      filtered = filtered.filter(r => r.business_unit === unit);
+  if (visa)      filtered = filtered.filter(r => (r.visa_status ?? '') === visa);
+  if (tArr)      filtered = filtered.filter(r => (r.airport_transfer_arrival ?? '') === tArr);
+  if (tDep)      filtered = filtered.filter(r => (r.airport_transfer_departure ?? '') === tDep);
+  if (insurance) filtered = filtered.filter(r => (r.travel_insurance_confirmed ?? '') === insurance);
+  if (epipen)    filtered = filtered.filter(r => String(r.carries_epipen ?? 'false') === epipen);
+  if (dietary === 'has')  filtered = filtered.filter(r => r.dietary_restrictions && r.dietary_restrictions.toLowerCase() !== 'none');
+  if (dietary === 'none') filtered = filtered.filter(r => !r.dietary_restrictions || r.dietary_restrictions.toLowerCase() === 'none');
+  if (search)    filtered = filtered.filter(r =>
+    (r.full_name || '').toLowerCase().includes(search) ||
+    (r.work_email || '').toLowerCase().includes(search)
+  );
+  return filtered;
+}
+
+function exportCSV() {
+  const rows = getVisibleRows();
+  if (!rows.length) { alert('No data to export.'); return; }
+  const header = EXPORT_COLS.map(([,l]) => `"${l}"`).join(',');
+  const body = rows.map(r =>
+    EXPORT_COLS.map(([k]) => {
+      const v = r[k] ?? '';
+      return `"${String(v).replace(/"/g,'""')}"`;
+    }).join(',')
+  );
+  const csv  = [header, ...body].join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'dgc2026-delegates.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportXLSX() {
+  const rows = getVisibleRows();
+  if (!rows.length) { alert('No data to export.'); return; }
+
+  // Build a simple XML-based XLSX (SpreadsheetML) — no library needed
+  const headers = EXPORT_COLS.map(([,l]) => l);
+  const xmlRows = [headers, ...rows.map(r => EXPORT_COLS.map(([k]) => String(r[k] ?? '')))];
+
+  const escape = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  const rowsXml = xmlRows.map(row =>
+    `<Row>${row.map(cell => `<Cell><Data ss:Type="String">${escape(cell)}</Data></Cell>`).join('')}</Row>`
+  ).join('');
+
+  const xml = `<?xml version="1.0"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+  <Worksheet ss:Name="Delegates">
+    <Table>${rowsXml}</Table>
+  </Worksheet>
+</Workbook>`;
+
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'dgc2026-delegates.xls'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+
 
 function showDrilldown(filtered, title) {
   document.getElementById('drilldown-wrap').style.display = 'block';
@@ -793,18 +1157,11 @@ function addChartClick(chartId, dataKey, labelMap) {
     const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
     if (!points.length) return;
     const label = chart.data.labels[points[0].index];
-    // Reverse map label → raw value
-    let filtered;
+    let rawVal;
     if (labelMap) {
-      const rawVal = Object.entries(labelMap).find(([,v]) => v === label)?.[0];
-      filtered = allData.filter(r => {
-        const v = r[dataKey] ?? '';
-        return rawVal !== undefined ? v === rawVal : (r[dataKey] || 'Not specified') === label;
-      });
-    } else {
-      filtered = allData.filter(r => (r[dataKey] || 'Not specified') === label);
+      rawVal = Object.entries(labelMap).find(([,v]) => v === label)?.[0];
     }
-    showDrilldown(filtered, `${label} · ${chartId.replace('chart-','')}`);
+    showDrilldown(label, label, dataKey, rawVal);
   };
   canvas.style.cursor = 'pointer';
 }
@@ -815,11 +1172,12 @@ function addTimelineClick() {
     const row = e.target.closest('.timeline-row');
     if (!row) return;
     const dateEl = row.querySelector('.timeline-date');
-    if (!dateEl) return;
-    const dateText = dateEl.dataset.iso;
-    if (!dateText) return;
-    const filtered = allData.filter(r => r.created_at && r.created_at.slice(0,10) === dateText);
-    showDrilldown(filtered, `Registered on ${dateEl.textContent.trim()}`);
+    if (!dateEl || !dateEl.dataset.iso) return;
+    const iso = dateEl.dataset.iso;
+    showDrilldown(`Registered on ${dateEl.textContent.trim()}`, `Registered on ${dateEl.textContent.trim()}`, '_date_', iso);
+    // Override: filter by date directly
+    activeFilter = { field: '_date_', rawVal: iso, label: iso };
+    applySlicers();
   });
 }
 
@@ -830,8 +1188,10 @@ function addMapClick() {
     if (!tag) return;
     const country = tag.dataset.country;
     if (!country) return;
-    const filtered = allData.filter(r => r.country_of_residence === country);
-    showDrilldown(filtered, country);
+    document.getElementById('sl-country').value = country;
+    activeFilter = null;
+    applySlicers();
+    document.getElementById('drilldown-title').textContent = country;
   });
 }
 
