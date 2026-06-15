@@ -1977,6 +1977,57 @@ footer {
 }
 
 /* ============================================================
+   COUNTRY AUTOCOMPLETE
+   ============================================================ */
+.country-wrap {
+  position: relative;
+}
+
+.country-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 100;
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+}
+
+.country-list[hidden] { display: none; }
+
+.country-list li {
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background var(--transition-base);
+}
+
+.country-list li:hover,
+.country-list li[aria-selected="true"] {
+  background: var(--brand-primary-light);
+  color: var(--brand-primary-dark);
+}
+
+.country-list li.no-results {
+  color: var(--text-muted);
+  font-style: italic;
+  cursor: default;
+}
+
+.country-list li.no-results:hover {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+/* ============================================================
    ADMIN PANEL
    ============================================================ */
 .admin-panel {
