@@ -46,13 +46,13 @@ const RegistrationService = {
       if (response.status === 409) {
         return {
           success: false,
-          error: 'This email address has already been registered. Contact anton.clowes@vigsw.com if you need to update your details.',
+          error: 'This email address has already been registered. Contact aclowes@carinasw.com if you need to update your details.',
         };
       }
 
       return {
         success: false,
-        error: 'Submission failed. Please try again or contact anton.clowes@vigsw.com.',
+        error: 'Submission failed. Please try again or contact aclowes@carinasw.com.',
       };
 
     } catch {
@@ -60,7 +60,7 @@ const RegistrationService = {
         success: false,
         error: !navigator.onLine
           ? 'You appear to be offline. Please check your connection and try again.'
-          : 'Could not reach the registration service. Please try again or contact anton.clowes@vigsw.com.',
+          : 'Could not reach the registration service. Please try again or contact aclowes@carinasw.com.',
       };
     }
   },
