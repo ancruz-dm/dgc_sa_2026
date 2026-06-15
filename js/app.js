@@ -716,12 +716,20 @@ async function adminLogin() {
 
   try {
     adminAccessToken = await AdminAuth.signIn(email, password);
-    // Show admin content, hide login
-    document.getElementById('admin-login').hidden   = true;
-    document.getElementById('admin-content').hidden = false;
-    // Load data with authenticated token
+
+    const loginEl   = document.getElementById('admin-login');
+    const contentEl = document.getElementById('admin-content');
+
+    if (!loginEl || !contentEl) {
+      throw new Error('Admin panel elements not found. Please reload the page.');
+    }
+
+    loginEl.setAttribute('hidden', '');
+    contentEl.removeAttribute('hidden');
     await loadAdminData();
+
   } catch (err) {
+    console.error('[adminLogin]', err);
     if (errEl) errEl.textContent = err.message || 'Invalid email or password.';
     adminAccessToken = null;
   } finally {
@@ -764,8 +772,8 @@ async function openAdmin() {
   document.body.style.overflow = 'hidden';
 
   // Always show login screen on open, reset state
-  document.getElementById('admin-login').hidden   = false;
-  document.getElementById('admin-content').hidden = true;
+  document.getElementById('admin-login').removeAttribute('hidden');
+  document.getElementById('admin-content').setAttribute('hidden', '');
   adminAccessToken = null;
 
   const emailEl = document.getElementById('admin-email');
