@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>DGC 2026 · Executive Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --brand:        #638BA3;
+      --brand-dark:   #446C84;
+      --brand-light:  #e8f2f7;
+      --accent:       #83C3DB;
+      --bg:           #F0F4F7;
+      --surface:      #FFFFFF;
+      --border:       #DDE6EC;
+      --text:         #1C2B36;
+      --text-2:       #4A6070;
+      --text-3:       #8AA0AE;
+      --dark:         #1E2B35;
+      --dark-deep:    #131D24;
+      --radius:       12px;
+      --shadow:       0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+      --shadow-sm:    0 1px 2px rgba(0,0,0,0.06);
+    }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── LOGIN ───────────────────────────────────────────── */
+    #login-screen {
+      position: fixed; inset: 0;
+      background: var(--dark-deep);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+    }
+    #login-screen[hidden] { display: none; }
+
+    .login-card {
+      background: var(--surface);
+      border-radius: 18px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+      padding: 2.5rem;
+      width: 100%; max-width: 400px;
+    }
+    .login-logo { margin-bottom: 1.5rem; }
+    .login-logo img { height: 30px; width: auto; }
+    .login-title { font-family: 'DM Sans', sans-serif; font-size: 1.25rem; font-weight: 700; color: var(--text); margin-bottom: 0.25rem; }
+    .login-sub { font-size: 0.875rem; color: var(--text-2); margin-bottom: 1.75rem; }
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-2); margin-bottom: 0.4rem; }
+    .field input {
+      width: 100%; padding: 0.7rem 1rem;
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.9rem; font-family: inherit; color: var(--text);
+      background: var(--bg); outline: none;
+      transition: border-color 0.15s;
+    }
+    .field input:focus { border-color: var(--brand); }
+    .login-error { font-size: 0.8rem; color: #c0392b; min-height: 1.2rem; margin-bottom: 0.75rem; }
+    .btn-login {
+      width: 100%; padding: 0.8rem;
+      background: var(--brand-dark); color: #fff;
+      border: none; border-radius: 8px;
+      font-size: 0.9rem; font-weight: 600; font-family: inherit;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn-login:hover { background: var(--brand); }
+    .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* ── DASHBOARD ───────────────────────────────────────── */
+    #dashboard { display: none; min-height: 100vh; }
+    #dashboard.visible { display: block; }
+
+    /* Nav */
+    .dash-nav {
+      background: var(--dark-deep);
+      padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+      position: sticky; top: 0; z-index: 50;
+    }
+    .dash-nav-left { display: flex; align-items: center; gap: 1rem; }
+    .dash-nav-left img { height: 26px; width: auto; }
+    .dash-nav-title { font-size: 0.8rem; font-weight: 600; color: rgba(255,255,255,0.45); letter-spacing: 0.06em; text-transform: uppercase; }
+    .dash-nav-right { display: flex; align-items: center; gap: 1rem; }
+    .dash-updated { font-size: 0.75rem; color: rgba(255,255,255,0.3); }
+    .btn-refresh {
+      padding: 0.4rem 0.9rem; font-size: 0.78rem; font-weight: 600;
+      background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7);
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 6px;
+      cursor: pointer; font-family: inherit; transition: background 0.15s;
+    }
+    .btn-refresh:hover { background: rgba(255,255,255,0.14); }
+    .btn-logout {
+      padding: 0.4rem 0.9rem; font-size: 0.78rem; font-weight: 600;
+      background: transparent; color: rgba(255,255,255,0.4);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 6px;
+      cursor: pointer; font-family: inherit; transition: all 0.15s;
+    }
+    .btn-logout:hover { color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.2); }
+
+    /* Main */
+    .dash-main { max-width: 1280px; margin: 0 auto; padding: 2rem; }
+
+    /* KPI row */
+    .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.75rem; }
+    .kpi-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem 1.5rem;
+      box-shadow: var(--shadow-sm);
+      display: flex; flex-direction: column; gap: 0.25rem;
+    }
+    .kpi-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); }
+    .kpi-value { font-size: 2.25rem; font-weight: 700; font-family: 'DM Sans', sans-serif; color: var(--brand-dark); line-height: 1; }
+    .kpi-sub { font-size: 0.78rem; color: var(--text-3); margin-top: 0.1rem; }
+    .kpi-card.accent { background: var(--brand-dark); border-color: var(--brand-dark); }
+    .kpi-card.accent .kpi-label { color: rgba(255,255,255,0.55); }
+    .kpi-card.accent .kpi-value { color: #fff; }
+    .kpi-card.accent .kpi-sub { color: rgba(255,255,255,0.45); }
+
+    /* Grid layouts */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    .grid-1 { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1rem; }
+
+    /* Chart cards */
+    .chart-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.5rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .chart-card.span-2 { grid-column: span 2; }
+    .chart-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); margin-bottom: 0.25rem; }
+    .chart-subtitle { font-size: 0.875rem; font-weight: 600; color: var(--text); margin-bottom: 1.25rem; }
+    .chart-wrap { position: relative; }
+    .chart-wrap canvas { max-height: 260px; }
+    .chart-wrap.tall canvas { max-height: 340px; }
+    .chart-wrap.short canvas { max-height: 180px; }
+
+    /* Map placeholder */
+    .world-map-wrap {
+      background: var(--brand-light);
+      border-radius: 8px;
+      min-height: 320px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 1rem; padding: 2rem;
+    }
+    .map-countries { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+    .map-country-tag {
+      background: var(--brand-dark); color: #fff;
+      font-size: 0.75rem; font-weight: 600;
+      padding: 0.3rem 0.75rem; border-radius: 20px;
+    }
+    .map-label { font-size: 0.85rem; color: var(--text-2); font-weight: 500; }
+
+    /* Timeline */
+    .timeline-wrap { display: flex; flex-direction: column; gap: 0.5rem; padding-top: 0.5rem; }
+    .timeline-row { display: flex; align-items: center; gap: 0.75rem; }
+    .timeline-date { font-size: 0.75rem; color: var(--text-3); width: 80px; flex-shrink: 0; }
+    .timeline-bar-wrap { flex: 1; background: var(--brand-light); border-radius: 4px; height: 24px; overflow: hidden; }
+    .timeline-bar { height: 100%; background: var(--brand); border-radius: 4px; display: flex; align-items: center; padding-left: 0.5rem; transition: width 0.6s ease; min-width: 24px; }
+    .timeline-count { font-size: 0.7rem; font-weight: 700; color: #fff; }
+
+    /* Loading */
+    .loading-state { text-align: center; padding: 3rem; color: var(--text-3); font-size: 0.875rem; }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--brand); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 0.5rem; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .kpi-row { grid-template-columns: 1fr 1fr; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .chart-card.span-2 { grid-column: span 1; }
+    }
+    @media (max-width: 520px) {
+      .kpi-row { grid-template-columns: 1fr 1fr; }
+      .dash-main { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="images/Datamine-logo.png" alt="Datamine"
+        onerror="this.src='https://raw.githubusercontent.com/dataminesoftware/datamine-conference/main/images/Datamine-logo.png'">
+    </div>
+    <p class="login-title">Executive Dashboard</p>
+    <p class="login-sub">DGC 2026 · Registration Analytics</p>
+    <div class="field">
+      <label for="d-email">Email</label>
+      <input type="email" id="d-email" placeholder="you@datamine.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label for="d-password">Password</label>
+      <input type="password" id="d-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="login-error" id="d-error"></div>
+    <button class="btn-login" id="d-login-btn" onclick="dashLogin()">Sign in</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+
+  <nav class="dash-nav">
+    <div class="dash-nav-left">
+      <img src="images/Datamine-logo-white.png" alt="Datamine"
+        onerror="this.src='https://raw.githubusercontent.com/dataminesoftware/datamine-conference/main/images/Datamine-logo-white.png'">
+      <span class="dash-nav-title">DGC 2026 · Executive Dashboard</span>
+    </div>
+    <div class="dash-nav-right">
+      <span class="dash-updated" id="dash-updated"></span>
+      <button class="btn-refresh" onclick="loadDashboard()">↻ Refresh</button>
+      <button class="btn-logout" onclick="dashLogout()">Sign out</button>
+    </div>
+  </nav>
+
+  <div class="dash-main">
+
+    <!-- Loading -->
+    <div class="loading-state" id="dash-loading">
+      <span class="spinner"></span> Loading registration data…
+    </div>
+
+    <!-- Content -->
+    <div id="dash-content" style="display:none">
+
+      <!-- KPIs -->
+      <div class="kpi-row">
+        <div class="kpi-card accent">
+          <span class="kpi-label">Total Registered</span>
+          <span class="kpi-value" id="k-total">—</span>
+          <span class="kpi-sub">delegates confirmed</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Countries</span>
+          <span class="kpi-value" id="k-countries">—</span>
+          <span class="kpi-sub">represented</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Business Units</span>
+          <span class="kpi-value" id="k-units">—</span>
+          <span class="kpi-sub">across the organisation</span>
+        </div>
+        <div class="kpi-card">
+          <span class="kpi-label">Transfers Requested</span>
+          <span class="kpi-value" id="k-transfers">—</span>
+          <span class="kpi-sub">arrival or departure</span>
+        </div>
+      </div>
+
+      <!-- Row 1: Countries + Business Units -->
+      <div class="grid-2">
+        <div class="chart-card">
+          <div class="chart-title">Geography</div>
+          <div class="chart-subtitle">Delegates by country</div>
+          <div class="chart-wrap tall"><canvas id="chart-countries"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Organisation</div>
+          <div class="chart-subtitle">Delegates by business unit</div>
+          <div class="chart-wrap tall"><canvas id="chart-units"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Row 2: Visa + Transfers -->
+      <div class="grid-2">
+        <div class="chart-card">
+          <div class="chart-title">Travel</div>
+          <div class="chart-subtitle">Visa status</div>
+          <div class="chart-wrap"><canvas id="chart-visa"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Logistics</div>
+          <div class="chart-subtitle">Airport transfers requested</div>
+          <div class="chart-wrap"><canvas id="chart-transfers"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Row 3: Dietary + Medical + T-shirt -->
+      <div class="grid-3">
+        <div class="chart-card">
+          <div class="chart-title">Catering</div>
+          <div class="chart-subtitle">Dietary restrictions</div>
+          <div class="chart-wrap short"><canvas id="chart-dietary"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Health</div>
+          <div class="chart-subtitle">Medical flags</div>
+          <div class="chart-wrap short"><canvas id="chart-medical"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Merchandise</div>
+          <div class="chart-subtitle">T-shirt sizes</div>
+          <div class="chart-wrap short"><canvas id="chart-tshirt"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Row 4: World map (countries list) -->
+      <div class="grid-1">
+        <div class="chart-card">
+          <div class="chart-title">Global Reach</div>
+          <div class="chart-subtitle">Countries represented</div>
+          <div class="world-map-wrap">
+            <span class="map-label" id="map-label">Loading…</span>
+            <div class="map-countries" id="map-countries"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 5: Timeline -->
+      <div class="grid-1">
+        <div class="chart-card">
+          <div class="chart-title">Registration Timeline</div>
+          <div class="chart-subtitle">Registrations per day</div>
+          <div class="timeline-wrap" id="timeline"></div>
+        </div>
+      </div>
+
+    </div><!-- /dash-content -->
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const CFG = {
+  URL: 'https://uyqgxuwqiqrkyzbnhxph.supabase.co',
+  KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5cWd4dXdxaXFya3l6Ym5oeHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMzMxNDEsImV4cCI6MjA5NjcwOTE0MX0.K5qBJZgRagrsgRhBVkBBFKk5keHRQc1HplOO9ClHXEU',
+};
+
+let token = null;
+const charts = {};
+
+// ── PALETTE ──────────────────────────────────────────────
+const PALETTE = [
+  '#446C84','#638BA3','#83C3DB','#a8d4e6','#c8e8f4',
+  '#2d5568','#7aadbe','#4a8fa0','#b0d8e8','#3d7080',
+];
+
+function palette(n) {
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(PALETTE[i % PALETTE.length]);
+  return out;
+}
+
+// ── AUTH ─────────────────────────────────────────────────
+async function dashLogin() {
+  const email    = document.getElementById('d-email').value.trim();
+  const password = document.getElementById('d-password').value;
+  const errEl    = document.getElementById('d-error');
+  const btn      = document.getElementById('d-login-btn');
+
+  if (!email || !password) { errEl.textContent = 'Please enter your email and password.'; return; }
+
+  btn.disabled = true; btn.textContent = 'Signing in…'; errEl.textContent = '';
+
+  try {
+    const res  = await fetch(`${CFG.URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': CFG.KEY },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error_description || data.message || 'Invalid credentials.');
+    token = data.access_token || data?.session?.access_token;
+    if (!token) throw new Error('No token received.');
+
+    document.getElementById('login-screen').setAttribute('hidden', '');
+    document.getElementById('dashboard').classList.add('visible');
+    await loadDashboard();
+  } catch (e) {
+    errEl.textContent = e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign in';
+  }
+}
+
+async function dashLogout() {
+  if (token) {
+    fetch(`${CFG.URL}/auth/v1/logout`, {
+      method: 'POST',
+      headers: { 'apikey': CFG.KEY, 'Authorization': 'Bearer ' + token },
+    }).catch(() => {});
+    token = null;
+  }
+  document.getElementById('dashboard').classList.remove('visible');
+  document.getElementById('login-screen').removeAttribute('hidden');
+  document.getElementById('d-password').value = '';
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !document.getElementById('login-screen').hidden) dashLogin();
+});
+
+// ── DATA ──────────────────────────────────────────────────
+async function fetchAll() {
+  const res = await fetch(
+    `${CFG.URL}/rest/v1/registrations?select=*&order=created_at.asc`,
+    { headers: { 'apikey': CFG.KEY, 'Authorization': 'Bearer ' + token } }
+  );
+  if (!res.ok) throw new Error('Failed to load data.');
+  return res.json();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────
+async function loadDashboard() {
+  document.getElementById('dash-loading').style.display = 'block';
+  document.getElementById('dash-content').style.display = 'none';
+
+  try {
+    const data = await fetchAll();
+    renderDashboard(data);
+    document.getElementById('dash-updated').textContent =
+      'Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  } catch (e) {
+    document.getElementById('dash-loading').textContent = 'Error loading data. Try refreshing.';
+    return;
+  }
+
+  document.getElementById('dash-loading').style.display = 'none';
+  document.getElementById('dash-content').style.display = 'block';
+}
+
+function renderDashboard(data) {
+  const n = data.length;
+
+  // ── KPIs ──
+  setText('k-total', n);
+  const countries = unique(data, 'country_of_residence');
+  setText('k-countries', countries.length);
+  const units = unique(data, 'business_unit');
+  setText('k-units', units.length);
+  const transfers = data.filter(r =>
+    r.airport_transfer_arrival === 'yes' || r.airport_transfer_departure === 'yes'
+  ).length;
+  setText('k-transfers', transfers);
+
+  // ── Countries bar chart ──
+  const cCount = count(data, 'country_of_residence');
+  renderBar('chart-countries', cCount, 'Delegates');
+
+  // ── Business units bar chart ──
+  const uCount = count(data, 'business_unit');
+  renderBar('chart-units', uCount, 'Delegates');
+
+  // ── Visa doughnut ──
+  const visaLabels = { no: 'Visa-free', yes: 'Visa needed', unsure: 'Unsure', 'support-needed': 'Support letter needed', '': 'Not specified' };
+  const vCount = countMapped(data, 'visa_status', visaLabels);
+  renderDoughnut('chart-visa', vCount);
+
+  // ── Transfers grouped bar ──
+  const arrLabel = { yes: 'Yes', no: 'No', unsure: 'Unsure', '': 'Not specified' };
+  const arrCount = countMapped(data, 'airport_transfer_arrival', arrLabel);
+  const depCount = countMapped(data, 'airport_transfer_departure', arrLabel);
+  const tKeys = [...new Set([...Object.keys(arrCount), ...Object.keys(depCount)])];
+  renderGroupedBar('chart-transfers',
+    tKeys,
+    [
+      { label: 'Arrival', data: tKeys.map(k => arrCount[k] || 0), backgroundColor: '#446C84' },
+      { label: 'Departure', data: tKeys.map(k => depCount[k] || 0), backgroundColor: '#83C3DB' },
+    ]
+  );
+
+  // ── Dietary ──
+  const hasRestriction = data.filter(r => r.dietary_restrictions && r.dietary_restrictions.toLowerCase() !== 'none').length;
+  renderDoughnut('chart-dietary', {
+    'Has restrictions': hasRestriction,
+    'No restrictions': n - hasRestriction,
+  });
+
+  // ── Medical ──
+  const hasMedical  = data.filter(r => r.medical_conditions && r.medical_conditions.toLowerCase() !== 'none').length;
+  const hasEpipen   = data.filter(r => r.carries_epipen === true).length;
+  const hasInsurance= data.filter(r => r.travel_insurance_confirmed === 'yes').length;
+  renderBar('chart-medical', {
+    'Medical conditions': hasMedical,
+    'Carries EpiPen': hasEpipen,
+    'Insurance confirmed': hasInsurance,
+  }, 'Delegates', true);
+
+  // ── T-shirt ──
+  const sizeOrder = ['XS','S','M','L','XL','XXL','3XL','4XL'];
+  const tCount = count(data, 'tshirt_size');
+  const tOrdered = {};
+  sizeOrder.forEach(s => { if (tCount[s] !== undefined) tOrdered[s] = tCount[s]; });
+  Object.keys(tCount).forEach(k => { if (!tOrdered[k]) tOrdered[k] = tCount[k]; });
+  renderBar('chart-tshirt', tOrdered, 'Delegates', true);
+
+  // ── World map (country tags) ──
+  const sortedCountries = Object.entries(cCount).sort((a,b) => b[1]-a[1]);
+  const mapEl = document.getElementById('map-countries');
+  const mapLabel = document.getElementById('map-label');
+  mapLabel.textContent = `${countries.length} ${countries.length === 1 ? 'country' : 'countries'} · ${n} ${n === 1 ? 'delegate' : 'delegates'}`;
+  mapEl.innerHTML = sortedCountries.map(([c, n]) =>
+    `<span class="map-country-tag">${c} <strong>${n}</strong></span>`
+  ).join('');
+
+  // ── Timeline ──
+  const byDate = {};
+  data.forEach(r => {
+    if (!r.created_at) return;
+    const d = r.created_at.slice(0, 10);
+    byDate[d] = (byDate[d] || 0) + 1;
+  });
+  const dates = Object.keys(byDate).sort();
+  const maxCount = Math.max(...Object.values(byDate), 1);
+  const tlEl = document.getElementById('timeline');
+  tlEl.innerHTML = dates.length === 0
+    ? '<p style="color:var(--text-3);font-size:.875rem;padding:1rem 0">No data yet.</p>'
+    : dates.map(d => {
+        const pct = Math.max(6, (byDate[d] / maxCount) * 100);
+        return `<div class="timeline-row">
+          <span class="timeline-date">${formatDate(d)}</span>
+          <div class="timeline-bar-wrap">
+            <div class="timeline-bar" style="width:${pct}%">
+              <span class="timeline-count">${byDate[d]}</span>
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+}
+
+// ── CHART HELPERS ─────────────────────────────────────────
+const chartDefaults = {
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid: { display: false }, ticks: { font: { size: 11, family: 'Inter' }, color: '#8AA0AE' } },
+    y: { grid: { color: '#EEF3F7' }, ticks: { font: { size: 11, family: 'Inter' }, color: '#8AA0AE', precision: 0 } },
+  },
+};
+
+function renderBar(id, obj, label = 'Count', horizontal = false) {
+  const labels = Object.keys(obj);
+  const values = Object.values(obj);
+  const type = horizontal ? 'bar' : 'bar';
+  const indexAxis = horizontal ? 'y' : 'x';
+
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id), {
+    type,
+    data: {
+      labels,
+      datasets: [{ label, data: values, backgroundColor: palette(labels.length), borderRadius: 6, borderSkipped: false }],
+    },
+    options: {
+      indexAxis,
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: indexAxis === 'y' ? false : true, color: '#EEF3F7' }, ticks: { font: { size: 11, family: 'Inter' }, color: '#8AA0AE' } },
+        y: { grid: { display: indexAxis === 'x' ? false : true, color: '#EEF3F7' }, ticks: { font: { size: 11, family: 'Inter' }, color: '#8AA0AE', precision: 0 } },
+      },
+    },
+  });
+}
+
+function renderDoughnut(id, obj) {
+  const labels = Object.keys(obj);
+  const values = Object.values(obj);
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id), {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data: values, backgroundColor: palette(labels.length), borderWidth: 2, borderColor: '#fff' }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      cutout: '62%',
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11, family: 'Inter' }, color: '#4A6070', padding: 14, boxWidth: 10 } },
+      },
+    },
+  });
+}
+
+function renderGroupedBar(id, labels, datasets) {
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id), {
+    type: 'bar',
+    data: { labels, datasets: datasets.map(d => ({ ...d, borderRadius: 4, borderSkipped: false })) },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11, family: 'Inter' }, color: '#4A6070', padding: 14, boxWidth: 10 } },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11, family: 'Inter' }, color: '#8AA0AE' } },
+        y: { grid: { color: '#EEF3F7' }, ticks: { font: { size: 11, family: 'Inter' }, color: '#8AA0AE', precision: 0 } },
+      },
+    },
+  });
+}
+
+// ── UTILS ─────────────────────────────────────────────────
+function count(data, key) {
+  const out = {};
+  data.forEach(r => {
+    const v = r[key] || 'Not specified';
+    out[v] = (out[v] || 0) + 1;
+  });
+  return Object.fromEntries(Object.entries(out).sort((a, b) => b[1] - a[1]));
+}
+
+function countMapped(data, key, map) {
+  const out = {};
+  data.forEach(r => {
+    const raw = r[key] ?? '';
+    const label = map[raw] || map[''] || raw || 'Not specified';
+    out[label] = (out[label] || 0) + 1;
+  });
+  return out;
+}
+
+function unique(data, key) {
+  return [...new Set(data.map(r => r[key]).filter(Boolean))];
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+function formatDate(iso) {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+}
+</script>
+</body>
+</html>
