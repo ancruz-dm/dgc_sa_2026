@@ -50,15 +50,12 @@ const RegistrationService = {
         };
       }
 
-      const body = await response.text().catch(() => '');
-      console.error('[RegistrationService] HTTP ' + response.status, body);
       return {
         success: false,
-        error: 'Submission failed (HTTP ' + response.status + '). Please try again or contact anton.clowes@vigsw.com.',
+        error: 'Submission failed. Please try again or contact anton.clowes@vigsw.com.',
       };
 
-    } catch (err) {
-      console.error('[RegistrationService] Network error:', err);
+    } catch {
       return {
         success: false,
         error: !navigator.onLine
@@ -86,24 +83,6 @@ const RegistrationService = {
     }
   },
 
-  async getAll() {
-    try {
-      const response = await fetch(
-        CONFIG.SUPABASE_URL + '/rest/v1/registrations?select=*&order=created_at.desc',
-        {
-          headers: {
-            'apikey':        CONFIG.SUPABASE_ANON_KEY,
-            'Authorization': 'Bearer ' + CONFIG.SUPABASE_ANON_KEY,
-          },
-        }
-      );
-      if (!response.ok) return [];
-      return await response.json();
-    } catch {
-      return [];
-    }
-  },
-
 };
 
 /* ============================================================
@@ -119,9 +98,18 @@ const FormState = {
     this._saveDraft();
   },
 
+  // Fields too sensitive to persist in sessionStorage
+  _sensitiveFields: [
+    'medicalConditions', 'medications', 'carriesEpipen',
+    'emergencyContactName', 'emergencyContactRelationship', 'emergencyContactPhone',
+    'foodAllergies', 'dietaryNotes', 'mobilityRequirements', 'accessibilityRequirements',
+  ],
+
   _saveDraft() {
     try {
-      sessionStorage.setItem(this.draftKey, JSON.stringify(this.data));
+      const safe = { ...this.data };
+      this._sensitiveFields.forEach(f => delete safe[f]);
+      sessionStorage.setItem(this.draftKey, JSON.stringify(safe));
     } catch { /* sessionStorage may be unavailable */ }
   },
 
@@ -671,9 +659,93 @@ function initInlineValidation() {
 }
 
 /* ============================================================
-   ADMIN PANEL
+   ADMIN AUTH SERVICE
    ============================================================ */
-let adminRegistrations = [];
+const AdminAuth = {
+
+  async signIn(email, password) {
+    const response = await fetch(CONFIG.SUPABASE_URL + '/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': CONFIG.SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error_description || data.msg || 'Sign in failed.');
+    return data.access_token;
+  },
+
+  async signOut(token) {
+    await fetch(CONFIG.SUPABASE_URL + '/auth/v1/logout', {
+      method: 'POST',
+      headers: {
+        'apikey': CONFIG.SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + token,
+      },
+    });
+  },
+};
+
+let adminAccessToken = null;
+
+async function adminLogin() {
+  const email    = document.getElementById('admin-email')?.value.trim();
+  const password = document.getElementById('admin-password')?.value;
+  const errEl    = document.getElementById('admin-login-error');
+  const btn      = document.querySelector('#admin-login .btn-primary');
+
+  if (!email || !password) {
+    if (errEl) errEl.textContent = 'Please enter your email and password.';
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
+  if (errEl) errEl.textContent = '';
+
+  try {
+    adminAccessToken = await AdminAuth.signIn(email, password);
+    // Show admin content, hide login
+    document.getElementById('admin-login').hidden   = true;
+    document.getElementById('admin-content').hidden = false;
+    // Load data with authenticated token
+    await loadAdminData();
+  } catch (err) {
+    if (errEl) errEl.textContent = err.message || 'Invalid email or password.';
+    adminAccessToken = null;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Sign in'; }
+  }
+}
+
+async function loadAdminData() {
+  const tbody = document.getElementById('admin-tbody');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="admin-loading">Loading registrations…</td></tr>';
+
+  try {
+    const response = await fetch(CONFIG.SUPABASE_URL + '/rest/v1/registrations?select=*&order=created_at.desc', {
+      headers: {
+        'apikey':        CONFIG.SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + adminAccessToken,
+        'Content-Type':  'application/json',
+      },
+    });
+    if (!response.ok) throw new Error('Failed to load registrations.');
+    adminRegistrations = await response.json();
+  } catch (err) {
+    adminRegistrations = [];
+    if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="admin-loading">Error loading data. Please try again.</td></tr>';
+    return;
+  }
+
+  renderAdminTable(adminRegistrations);
+  populateCountryFilter(adminRegistrations);
+  const total = document.getElementById('admin-total');
+  if (total) total.textContent = adminRegistrations.length;
+}
+
+
 
 async function openAdmin() {
   const panel = document.getElementById('admin-panel');
@@ -681,21 +753,28 @@ async function openAdmin() {
   panel.hidden = false;
   document.body.style.overflow = 'hidden';
 
-  const tbody = document.getElementById('admin-tbody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="admin-loading">Loading registrations…</td></tr>';
+  // Always show login screen on open, reset state
+  document.getElementById('admin-login').hidden   = false;
+  document.getElementById('admin-content').hidden = true;
+  adminAccessToken = null;
 
-  adminRegistrations = await RegistrationService.getAll();
-  renderAdminTable(adminRegistrations);
-  populateCountryFilter(adminRegistrations);
-
-  const total = document.getElementById('admin-total');
-  if (total) total.textContent = adminRegistrations.length;
+  const emailEl = document.getElementById('admin-email');
+  const passEl  = document.getElementById('admin-password');
+  const errEl   = document.getElementById('admin-login-error');
+  if (emailEl) emailEl.value = '';
+  if (passEl)  passEl.value  = '';
+  if (errEl)   errEl.textContent = '';
 }
 
-function closeAdmin() {
+async function closeAdmin() {
   const panel = document.getElementById('admin-panel');
   if (panel) panel.hidden = true;
   document.body.style.overflow = '';
+  if (adminAccessToken) {
+    AdminAuth.signOut(adminAccessToken).catch(() => {});
+    adminAccessToken = null;
+  }
+  adminRegistrations = [];
 }
 
 function populateCountryFilter(rows) {
@@ -840,12 +919,16 @@ const columns = [
 }
 
 /* ============================================================
-   KEYBOARD SHORTCUT — ESC closes admin
+   KEYBOARD SHORTCUT — ESC closes admin, Enter submits login
    ============================================================ */
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     const panel = document.getElementById('admin-panel');
     if (panel && !panel.hidden) closeAdmin();
+  }
+  if (e.key === 'Enter') {
+    const login = document.getElementById('admin-login');
+    if (login && !login.hidden) adminLogin();
   }
 });
 
@@ -853,6 +936,11 @@ document.addEventListener('keydown', e => {
    INIT
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
+  // Clear draft on tab/window close to avoid sensitive data lingering
+  window.addEventListener('beforeunload', () => {
+    FormState.clearDraft();
+  });
+
   // Restore draft
   FormState.loadDraft();
 
