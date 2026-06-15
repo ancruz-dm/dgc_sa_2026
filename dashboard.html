@@ -178,6 +178,48 @@
     .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--brand); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 0.5rem; vertical-align: middle; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* Drill-down table */
+    .btn-clear {
+      padding: 0.4rem 0.9rem; font-size: 0.78rem; font-weight: 600;
+      background: var(--brand-light); color: var(--brand-dark);
+      border: 1px solid var(--border); border-radius: 6px;
+      cursor: pointer; font-family: inherit; transition: background 0.15s;
+    }
+    .btn-clear:hover { background: #d4edf5; }
+
+    .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+
+    .drilldown-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 0.78rem; white-space: nowrap;
+    }
+    .drilldown-table thead tr {
+      background: var(--bg);
+    }
+    .drilldown-table th {
+      padding: 0.65rem 1rem; text-align: left;
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+      color: var(--text-3); border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; background: var(--bg); z-index: 1;
+    }
+    .drilldown-table td {
+      padding: 0.65rem 1rem; color: var(--text-2);
+      border-bottom: 1px solid var(--border);
+      max-width: 200px; overflow: hidden; text-overflow: ellipsis;
+    }
+    .drilldown-table td:first-child { font-weight: 600; color: var(--text); }
+    .drilldown-table tbody tr:last-child td { border-bottom: none; }
+    .drilldown-table tbody tr:hover td { background: var(--brand-light); }
+
+    .tag-yes  { color: #1a7a4a; background: #d4f0e0; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600; font-size: 0.7rem; }
+    .tag-no   { color: #666; background: #eee; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; }
+    .tag-warn { color: #92400E; background: #FEF3C7; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600; font-size: 0.7rem; }
+
+    /* Clickable chart hint */
+    .chart-card[data-clickable] { cursor: pointer; }
+    .chart-card[data-clickable]:hover { border-color: var(--brand); }
+    .click-hint { font-size: 0.7rem; color: var(--text-3); margin-top: 0.5rem; }
+
     /* Responsive */
     @media (max-width: 900px) {
       .kpi-row { grid-template-columns: 1fr 1fr; }
@@ -332,6 +374,47 @@
         </div>
       </div>
 
+      <!-- Drill-down table -->
+      <div class="grid-1" id="drilldown-wrap" style="display:none">
+        <div class="chart-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem">
+            <div>
+              <div class="chart-title">Drill-down</div>
+              <div class="chart-subtitle" id="drilldown-title">All registrations</div>
+            </div>
+            <button class="btn-clear" id="btn-clear" onclick="clearDrilldown()">✕ Clear filter</button>
+          </div>
+          <div class="table-wrap">
+            <table class="drilldown-table" id="drilldown-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Country</th>
+                  <th>Departure city</th>
+                  <th>Business unit</th>
+                  <th>Job title</th>
+                  <th>Arrival</th>
+                  <th>Departure</th>
+                  <th>Transfer arr.</th>
+                  <th>Transfer dep.</th>
+                  <th>Dietary</th>
+                  <th>Allergies</th>
+                  <th>Medical</th>
+                  <th>EpiPen</th>
+                  <th>T-shirt</th>
+                  <th>Insurance</th>
+                  <th>Visa</th>
+                  <th>Submitted</th>
+                </tr>
+              </thead>
+              <tbody id="drilldown-tbody"></tbody>
+            </table>
+          </div>
+          <div style="margin-top:0.75rem;font-size:0.75rem;color:var(--text-3)" id="drilldown-count"></div>
+        </div>
+      </div>
+
     </div><!-- /dash-content -->
   </div>
 </div>
@@ -438,10 +521,14 @@ async function loadDashboard() {
 }
 
 function renderDashboard(data) {
+  allData = data;
+  clearDrilldown();
   const n = data.length;
 
   // ── KPIs ──
   setText('k-total', n);
+  document.getElementById('k-total').closest('.kpi-card').style.cursor = 'pointer';
+  document.getElementById('k-total').closest('.kpi-card').onclick = () => showDrilldown(allData, 'All delegates');
   const countries = unique(data, 'country_of_residence');
   setText('k-countries', countries.length);
   const units = unique(data, 'business_unit');
@@ -450,19 +537,27 @@ function renderDashboard(data) {
     r.airport_transfer_arrival === 'yes' || r.airport_transfer_departure === 'yes'
   ).length;
   setText('k-transfers', transfers);
+  document.getElementById('k-transfers').closest('.kpi-card').style.cursor = 'pointer';
+  document.getElementById('k-transfers').closest('.kpi-card').onclick = () => {
+    const f = allData.filter(r => r.airport_transfer_arrival === 'yes' || r.airport_transfer_departure === 'yes');
+    showDrilldown(f, 'Transfer requested');
+  };
 
   // ── Countries bar chart ──
   const cCount = count(data, 'country_of_residence');
   renderBar('chart-countries', cCount, 'Delegates');
+  addChartClick('chart-countries', 'country_of_residence', null);
 
   // ── Business units bar chart ──
   const uCount = count(data, 'business_unit');
   renderBar('chart-units', uCount, 'Delegates');
+  addChartClick('chart-units', 'business_unit', null);
 
   // ── Visa doughnut ──
   const visaLabels = { no: 'Visa-free', yes: 'Visa needed', unsure: 'Unsure', 'support-needed': 'Support letter needed', '': 'Not specified' };
   const vCount = countMapped(data, 'visa_status', visaLabels);
   renderDoughnut('chart-visa', vCount);
+  addChartClick('chart-visa', 'visa_status', visaLabels);
 
   // ── Transfers grouped bar ──
   const arrLabel = { yes: 'Yes', no: 'No', unsure: 'Unsure', '': 'Not specified' };
@@ -501,15 +596,17 @@ function renderDashboard(data) {
   sizeOrder.forEach(s => { if (tCount[s] !== undefined) tOrdered[s] = tCount[s]; });
   Object.keys(tCount).forEach(k => { if (!tOrdered[k]) tOrdered[k] = tCount[k]; });
   renderBar('chart-tshirt', tOrdered, 'Delegates', true);
+  addChartClick('chart-tshirt', 'tshirt_size', null);
 
   // ── World map (country tags) ──
   const sortedCountries = Object.entries(cCount).sort((a,b) => b[1]-a[1]);
   const mapEl = document.getElementById('map-countries');
   const mapLabel = document.getElementById('map-label');
   mapLabel.textContent = `${countries.length} ${countries.length === 1 ? 'country' : 'countries'} · ${n} ${n === 1 ? 'delegate' : 'delegates'}`;
-  mapEl.innerHTML = sortedCountries.map(([c, n]) =>
-    `<span class="map-country-tag">${c} <strong>${n}</strong></span>`
+  mapEl.innerHTML = sortedCountries.map(([c, cnt]) =>
+    `<span class="map-country-tag" data-country="${esc(c)}" style="cursor:pointer" title="Click to filter">${esc(c)} <strong>${cnt}</strong></span>`
   ).join('');
+  addMapClick();
 
   // ── Timeline ──
   const byDate = {};
@@ -525,8 +622,8 @@ function renderDashboard(data) {
     ? '<p style="color:var(--text-3);font-size:.875rem;padding:1rem 0">No data yet.</p>'
     : dates.map(d => {
         const pct = Math.max(6, (byDate[d] / maxCount) * 100);
-        return `<div class="timeline-row">
-          <span class="timeline-date">${formatDate(d)}</span>
+        return `<div class="timeline-row" style="cursor:pointer" title="Click to filter">
+          <span class="timeline-date" data-iso="${d}">${formatDate(d)}</span>
           <div class="timeline-bar-wrap">
             <div class="timeline-bar" style="width:${pct}%">
               <span class="timeline-count">${byDate[d]}</span>
@@ -534,6 +631,7 @@ function renderDashboard(data) {
           </div>
         </div>`;
       }).join('');
+  addTimelineClick();
 }
 
 // ── CHART HELPERS ─────────────────────────────────────────
@@ -611,7 +709,133 @@ function renderGroupedBar(id, labels, datasets) {
   });
 }
 
-// ── UTILS ─────────────────────────────────────────────────
+// ── DRILLDOWN ─────────────────────────────────────────────
+let allData = [];
+
+function showDrilldown(filtered, title) {
+  document.getElementById('drilldown-wrap').style.display = 'block';
+  document.getElementById('drilldown-title').textContent = title;
+  document.getElementById('drilldown-count').textContent =
+    `${filtered.length} ${filtered.length === 1 ? 'delegate' : 'delegates'}`;
+
+  const tbody = document.getElementById('drilldown-tbody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="18" style="text-align:center;color:var(--text-3);padding:2rem">No delegates match this filter.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(r => {
+    const arr = r.arrival_datetime ? new Date(r.arrival_datetime).toLocaleDateString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '—';
+    const dep = r.departure_datetime ? new Date(r.departure_datetime).toLocaleDateString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '—';
+    const sub = r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+
+    return `<tr>
+      <td title="${esc(r.full_name)}">${esc(r.full_name || '—')}</td>
+      <td title="${esc(r.work_email)}">${esc(r.work_email || '—')}</td>
+      <td>${esc(r.country_of_residence || '—')}</td>
+      <td>${esc(r.departure_city || '—')}</td>
+      <td>${esc(r.business_unit || '—')}</td>
+      <td>${esc(r.job_title || '—')}</td>
+      <td>${arr}</td>
+      <td>${dep}</td>
+      <td>${yesNoTag(r.airport_transfer_arrival)}</td>
+      <td>${yesNoTag(r.airport_transfer_departure)}</td>
+      <td>${esc(r.dietary_restrictions || '—')}</td>
+      <td>${esc(r.food_allergies || '—')}</td>
+      <td>${medTag(r.medical_conditions)}</td>
+      <td>${r.carries_epipen ? '<span class="tag-warn">Yes</span>' : '<span class="tag-no">No</span>'}</td>
+      <td>${esc(r.tshirt_size || '—')}</td>
+      <td>${insuranceTag(r.travel_insurance_confirmed)}</td>
+      <td>${esc(r.visa_status || '—')}</td>
+      <td>${sub}</td>
+    </tr>`;
+  }).join('');
+
+  setTimeout(() => {
+    document.getElementById('drilldown-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 80);
+}
+
+function clearDrilldown() {
+  document.getElementById('drilldown-wrap').style.display = 'none';
+  document.getElementById('drilldown-tbody').innerHTML = '';
+}
+
+function yesNoTag(val) {
+  if (val === 'yes') return '<span class="tag-yes">Yes</span>';
+  if (val === 'no')  return '<span class="tag-no">No</span>';
+  return `<span class="tag-no">${esc(val || '—')}</span>`;
+}
+
+function medTag(val) {
+  if (!val || val.toLowerCase() === 'none') return '<span class="tag-no">None</span>';
+  return `<span class="tag-warn" title="${esc(val)}">Yes</span>`;
+}
+
+function insuranceTag(val) {
+  if (val === 'yes') return '<span class="tag-yes">Confirmed</span>';
+  if (val === 'arranging') return '<span class="tag-warn">Arranging</span>';
+  if (val === 'no') return '<span class="tag-no">No</span>';
+  return '—';
+}
+
+function esc(str) {
+  return String(str || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Wire click to chart — call after each chart is created
+function addChartClick(chartId, dataKey, labelMap) {
+  const canvas = document.getElementById(chartId);
+  canvas.onclick = function(evt) {
+    const chart = charts[chartId];
+    if (!chart) return;
+    const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+    if (!points.length) return;
+    const label = chart.data.labels[points[0].index];
+    // Reverse map label → raw value
+    let filtered;
+    if (labelMap) {
+      const rawVal = Object.entries(labelMap).find(([,v]) => v === label)?.[0];
+      filtered = allData.filter(r => {
+        const v = r[dataKey] ?? '';
+        return rawVal !== undefined ? v === rawVal : (r[dataKey] || 'Not specified') === label;
+      });
+    } else {
+      filtered = allData.filter(r => (r[dataKey] || 'Not specified') === label);
+    }
+    showDrilldown(filtered, `${label} · ${chartId.replace('chart-','')}`);
+  };
+  canvas.style.cursor = 'pointer';
+}
+
+// Timeline click
+function addTimelineClick() {
+  document.getElementById('timeline').addEventListener('click', e => {
+    const row = e.target.closest('.timeline-row');
+    if (!row) return;
+    const dateEl = row.querySelector('.timeline-date');
+    if (!dateEl) return;
+    const dateText = dateEl.dataset.iso;
+    if (!dateText) return;
+    const filtered = allData.filter(r => r.created_at && r.created_at.slice(0,10) === dateText);
+    showDrilldown(filtered, `Registered on ${dateEl.textContent.trim()}`);
+  });
+}
+
+// Map tags click
+function addMapClick() {
+  document.getElementById('map-countries').addEventListener('click', e => {
+    const tag = e.target.closest('.map-country-tag');
+    if (!tag) return;
+    const country = tag.dataset.country;
+    if (!country) return;
+    const filtered = allData.filter(r => r.country_of_residence === country);
+    showDrilldown(filtered, country);
+  });
+}
+
+
 function count(data, key) {
   const out = {};
   data.forEach(r => {
