@@ -1930,9 +1930,11 @@ footer {
 }
 
 .footer-logo-image {
-  height: 44px;
+  height: 38px;
   width: auto;
+  max-width: 160px;
   display: block;
+  object-fit: contain;
   opacity: 1;
 }
 
