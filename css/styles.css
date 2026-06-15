@@ -1932,10 +1932,9 @@ footer {
 .footer-logo-image {
   height: 38px;
   width: auto;
-  max-width: 160px;
   display: block;
-  object-fit: contain;
-  opacity: 0.9;
+  filter: brightness(0) invert(1);
+  opacity: 0.85;
 }
 
 .footer-logo-fallback {
