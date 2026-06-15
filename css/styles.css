@@ -1945,12 +1945,12 @@ footer {
 }
 
 .footer-logo-image {
-  height: 38px;
+  height: 88px;
   width: auto;
   max-width: 160px;
   display: block;
   object-fit: contain;
-  opacity: 0.9;
+  opacity: 1;
 }
 
 .footer-logo-fallback {
