@@ -4,266 +4,145 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow">
-  <title>Datamine Global Conference 2026 · Executive Dashboard</title>
+  <title>DGC 2026 · Executive Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --brand:        #638BA3;
-      --brand-dark:   #446C84;
-      --brand-light:  #e8f2f7;
-      --accent:       #83C3DB;
-      --bg:           #F0F4F7;
-      --surface:      #FFFFFF;
-      --border:       #DDE6EC;
-      --text:         #1C2B36;
-      --text-2:       #4A6070;
-      --text-3:       #8AA0AE;
-      --dark:         #1E2B35;
-      --dark-deep:    #131D24;
-      --radius:       12px;
-      --shadow:       0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
-      --shadow-sm:    0 1px 2px rgba(0,0,0,0.06);
+      --brand: #638BA3; --brand-dark: #446C84; --brand-light: #e8f2f7;
+      --accent: #83C3DB; --bg: #F0F4F7; --surface: #FFFFFF;
+      --border: #DDE6EC; --text: #1C2B36; --text-2: #4A6070; --text-3: #8AA0AE;
+      --dark: #1E2B35; --dark-deep: #131D24;
+      --radius: 12px; --shadow: 0 1px 3px rgba(0,0,0,0.08),0 4px 16px rgba(0,0,0,0.06);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
     }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-    body {
-      font-family: 'Inter', system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-    }
-
-    /* ── LOGIN ───────────────────────────────────────────── */
-    #login-screen {
-      position: fixed; inset: 0;
-      background: var(--dark-deep);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 100;
-    }
+    /* LOGIN */
+    #login-screen { position: fixed; inset: 0; background: var(--dark-deep); display: flex; align-items: center; justify-content: center; z-index: 100; }
     #login-screen[hidden] { display: none; }
-
-    .login-card {
-      background: var(--surface);
-      border-radius: 18px;
-      box-shadow: 0 24px 64px rgba(0,0,0,0.35);
-      padding: 2.5rem;
-      width: 100%; max-width: 400px;
-    }
+    .login-card { background: var(--surface); border-radius: 18px; box-shadow: 0 24px 64px rgba(0,0,0,0.35); padding: 2.5rem; width: 100%; max-width: 400px; }
     .login-logo { margin-bottom: 1.5rem; }
     .login-logo img { height: 30px; width: auto; }
-    .login-title { font-family: 'DM Sans', sans-serif; font-size: 1.25rem; font-weight: 700; color: var(--text); margin-bottom: 0.25rem; }
+    .login-title { font-family: 'DM Sans',sans-serif; font-size: 1.25rem; font-weight: 700; color: var(--text); margin-bottom: 0.25rem; }
     .login-sub { font-size: 0.875rem; color: var(--text-2); margin-bottom: 1.75rem; }
     .field { margin-bottom: 1rem; }
     .field label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-2); margin-bottom: 0.4rem; }
-    .field input {
-      width: 100%; padding: 0.7rem 1rem;
-      border: 1px solid var(--border); border-radius: 8px;
-      font-size: 0.9rem; font-family: inherit; color: var(--text);
-      background: var(--bg); outline: none;
-      transition: border-color 0.15s;
-    }
+    .field input { width: 100%; padding: 0.7rem 1rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; font-family: inherit; color: var(--text); background: var(--bg); outline: none; transition: border-color 0.15s; }
     .field input:focus { border-color: var(--brand); }
     .login-error { font-size: 0.8rem; color: #c0392b; min-height: 1.2rem; margin-bottom: 0.75rem; }
-    .btn-login {
-      width: 100%; padding: 0.8rem;
-      background: var(--brand-dark); color: #fff;
-      border: none; border-radius: 8px;
-      font-size: 0.9rem; font-weight: 600; font-family: inherit;
-      cursor: pointer; transition: background 0.15s;
-    }
+    .btn-login { width: 100%; padding: 0.8rem; background: var(--brand-dark); color: #fff; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 600; font-family: inherit; cursor: pointer; transition: background 0.15s; }
     .btn-login:hover { background: var(--brand); }
     .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    /* ── DASHBOARD ───────────────────────────────────────── */
+    /* DASHBOARD */
     #dashboard { display: none; min-height: 100vh; }
     #dashboard.visible { display: block; }
 
     /* Nav */
-    .dash-nav {
-      background: var(--dark-deep);
-      padding: 0 2rem;
-      display: flex; align-items: center; justify-content: space-between;
-      height: 56px;
-      position: sticky; top: 0; z-index: 50;
-    }
+    .dash-nav { background: var(--dark-deep); padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 50; }
     .dash-nav-left { display: flex; align-items: center; gap: 1rem; }
     .dash-nav-left img { height: 26px; width: auto; }
     .dash-nav-title { font-size: 0.8rem; font-weight: 600; color: rgba(255,255,255,0.45); letter-spacing: 0.06em; text-transform: uppercase; }
     .dash-nav-right { display: flex; align-items: center; gap: 1rem; }
     .dash-updated { font-size: 0.75rem; color: rgba(255,255,255,0.3); }
-    .btn-refresh {
-      padding: 0.4rem 0.9rem; font-size: 0.78rem; font-weight: 600;
-      background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7);
-      border: 1px solid rgba(255,255,255,0.12); border-radius: 6px;
-      cursor: pointer; font-family: inherit; transition: background 0.15s;
-    }
+    .btn-refresh { padding: 0.4rem 0.9rem; font-size: 0.78rem; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.12); border-radius: 6px; cursor: pointer; font-family: inherit; transition: background 0.15s; }
     .btn-refresh:hover { background: rgba(255,255,255,0.14); }
-    .btn-logout {
-      padding: 0.4rem 0.9rem; font-size: 0.78rem; font-weight: 600;
-      background: transparent; color: rgba(255,255,255,0.4);
-      border: 1px solid rgba(255,255,255,0.1); border-radius: 6px;
-      cursor: pointer; font-family: inherit; transition: all 0.15s;
-    }
+    .btn-logout { padding: 0.4rem 0.9rem; font-size: 0.78rem; font-weight: 600; background: transparent; color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; cursor: pointer; font-family: inherit; transition: all 0.15s; }
     .btn-logout:hover { color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.2); }
 
-    /* Main */
+    /* Layouts */
     .dash-main { max-width: 1280px; margin: 0 auto; padding: 2rem; }
-
-    /* KPI row */
+    .dash-full { padding: 0 2rem 2rem; }
     .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.75rem; }
-    .kpi-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 1.25rem 1.5rem;
-      box-shadow: var(--shadow-sm);
-      display: flex; flex-direction: column; gap: 0.25rem;
-    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    .grid-1 { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1rem; }
+
+    /* KPI cards */
+    .kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem 1.5rem; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: 0.25rem; }
     .kpi-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); }
-    .kpi-value { font-size: 2.25rem; font-weight: 700; font-family: 'DM Sans', sans-serif; color: var(--brand-dark); line-height: 1; }
+    .kpi-value { font-size: 2.25rem; font-weight: 700; font-family: 'DM Sans',sans-serif; color: var(--brand-dark); line-height: 1; }
     .kpi-sub { font-size: 0.78rem; color: var(--text-3); margin-top: 0.1rem; }
     .kpi-card.accent { background: var(--brand-dark); border-color: var(--brand-dark); }
     .kpi-card.accent .kpi-label { color: rgba(255,255,255,0.55); }
     .kpi-card.accent .kpi-value { color: #fff; }
     .kpi-card.accent .kpi-sub { color: rgba(255,255,255,0.45); }
 
-    /* Grid layouts */
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
-    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
-    .grid-1 { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 1rem; }
-
     /* Chart cards */
-    .chart-card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 1.5rem;
-      box-shadow: var(--shadow-sm);
-    }
-    .chart-card.span-2 { grid-column: span 2; }
-    .chart-title { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); margin-bottom: 0.25rem; }
+    .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; box-shadow: var(--shadow-sm); }
+    .chart-title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); margin-bottom: 0.2rem; }
     .chart-subtitle { font-size: 0.875rem; font-weight: 600; color: var(--text); margin-bottom: 1.25rem; }
-    .chart-wrap { position: relative; }
-    .chart-wrap canvas { max-height: 260px; }
-    .chart-wrap.tall canvas { max-height: 340px; }
-    .chart-wrap.short canvas { max-height: 180px; }
+    .chart-wrap canvas { max-height: 220px; }
+    .chart-wrap.tall canvas { max-height: 280px; }
+    .chart-wrap.short canvas { max-height: 160px; }
+    .chart-hint { font-size: 0.68rem; color: var(--text-3); margin-top: 0.5rem; text-align: right; }
 
-    /* Map placeholder */
-    .world-map-wrap {
-      background: var(--brand-light);
-      border-radius: 8px;
-      min-height: 320px;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 1rem; padding: 2rem;
-    }
-    .map-countries { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
-    .map-country-tag {
-      background: var(--brand-dark); color: #fff;
-      font-size: 0.75rem; font-weight: 600;
-      padding: 0.3rem 0.75rem; border-radius: 20px;
-    }
-    .map-label { font-size: 0.85rem; color: var(--text-2); font-weight: 500; }
+    /* Map */
+    .world-map-wrap { background: var(--brand-light); border-radius: 8px; min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; padding: 1.25rem; }
+    .map-countries { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center; }
+    .map-country-tag { background: var(--brand-dark); color: #fff; font-size: 0.72rem; font-weight: 600; padding: 0.25rem 0.65rem; border-radius: 20px; cursor: pointer; transition: background 0.15s; }
+    .map-country-tag:hover { background: var(--brand); }
+    .map-label { font-size: 0.8rem; color: var(--text-2); font-weight: 500; }
 
     /* Timeline */
-    .timeline-wrap { display: flex; flex-direction: column; gap: 0.5rem; padding-top: 0.5rem; }
-    .timeline-row { display: flex; align-items: center; gap: 0.75rem; }
-    .timeline-date { font-size: 0.75rem; color: var(--text-3); width: 80px; flex-shrink: 0; }
-    .timeline-bar-wrap { flex: 1; background: var(--brand-light); border-radius: 4px; height: 24px; overflow: hidden; }
+    .timeline-wrap { display: flex; flex-direction: column; gap: 0.4rem; padding-top: 0.25rem; }
+    .timeline-row { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; }
+    .timeline-row:hover .timeline-bar { filter: brightness(1.1); }
+    .timeline-date { font-size: 0.72rem; color: var(--text-3); width: 60px; flex-shrink: 0; }
+    .timeline-bar-wrap { flex: 1; background: var(--brand-light); border-radius: 4px; height: 22px; overflow: hidden; }
     .timeline-bar { height: 100%; background: var(--brand); border-radius: 4px; display: flex; align-items: center; padding-left: 0.5rem; transition: width 0.6s ease; min-width: 24px; }
-    .timeline-count { font-size: 0.7rem; font-weight: 700; color: #fff; }
-
-    /* Loading */
-    .loading-state { text-align: center; padding: 3rem; color: var(--text-3); font-size: 0.875rem; }
-    .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--brand); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 0.5rem; vertical-align: middle; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* Drill-down header */
-    .drilldown-header {
-      display: flex; align-items: flex-start; justify-content: space-between;
-      margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;
-    }
-    .drilldown-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-    .drilldown-count { margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-3); }
+    .timeline-count { font-size: 0.68rem; font-weight: 700; color: #fff; }
 
     /* Slicers */
-    .slicers-wrap {
-      display: flex; flex-wrap: wrap; gap: 0.75rem;
-      padding: 1rem; background: var(--bg); border-radius: 10px;
-      border: 1px solid var(--border); margin-bottom: 1.25rem;
-    }
-    .slicer-group { display: flex; flex-direction: column; gap: 0.3rem; min-width: 140px; }
+    .slicers-wrap { display: flex; flex-wrap: wrap; gap: 0.75rem; padding: 1rem; background: var(--bg); border-radius: 10px; border: 1px solid var(--border); margin-bottom: 1rem; }
+    .slicer-group { display: flex; flex-direction: column; gap: 0.3rem; min-width: 130px; }
     .slicer-group.slicer-search { min-width: 200px; flex: 1; }
-    .slicer-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
-    .slicer-select, .slicer-input {
-      padding: 0.45rem 0.75rem; font-size: 0.82rem; font-family: inherit;
-      border: 1px solid var(--border); border-radius: 7px;
-      background: var(--surface); color: var(--text); outline: none;
-      transition: border-color 0.15s;
-    }
+    .slicer-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); }
+    .slicer-select, .slicer-input { padding: 0.4rem 0.7rem; font-size: 0.8rem; font-family: inherit; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); outline: none; transition: border-color 0.15s; }
     .slicer-select:focus, .slicer-input:focus { border-color: var(--brand); }
 
-    /* Export buttons */
-    .btn-export {
-      padding: 0.4rem 0.9rem; font-size: 0.78rem; font-weight: 600;
-      background: var(--brand-light); color: var(--brand-dark);
-      border: 1px solid var(--border); border-radius: 6px;
-      cursor: pointer; font-family: inherit; transition: background 0.15s;
-    }
+    /* Drilldown */
+    .drilldown-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem; }
+    .drilldown-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .drilldown-count { margin-top: 0.65rem; font-size: 0.75rem; color: var(--text-3); }
+    .btn-export { padding: 0.38rem 0.85rem; font-size: 0.76rem; font-weight: 600; background: var(--brand-light); color: var(--brand-dark); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-family: inherit; transition: background 0.15s; }
     .btn-export:hover { background: #d4edf5; }
     .btn-export-xl { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; }
     .btn-export-xl:hover { background: #c8e6c9; }
+    .btn-clear { padding: 0.38rem 0.85rem; font-size: 0.76rem; font-weight: 600; background: #fff3f3; color: #c0392b; border: 1px solid #fcc; border-radius: 6px; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+    .btn-clear:hover { background: #ffe0e0; }
 
-    /* Drill-down table */
-    .btn-clear {
-      padding: 0.4rem 0.9rem; font-size: 0.78rem; font-weight: 600;
-      background: var(--brand-light); color: var(--brand-dark);
-      border: 1px solid var(--border); border-radius: 6px;
-      cursor: pointer; font-family: inherit; transition: background 0.15s;
-    }
-    .btn-clear:hover { background: #d4edf5; }
-
-    .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); max-height: 520px; overflow-y: auto; }
-
-    .drilldown-table {
-      width: 100%; border-collapse: collapse;
-      font-size: 0.78rem; white-space: nowrap;
-    }
+    /* Table */
+    .table-wrap { overflow-x: auto; overflow-y: auto; max-height: 540px; border-radius: 8px; border: 1px solid var(--border); }
+    .drilldown-table { width: 100%; border-collapse: collapse; font-size: 0.76rem; white-space: nowrap; }
     .drilldown-table thead tr { background: var(--bg); }
-    .drilldown-table th {
-      padding: 0.65rem 1rem; text-align: left;
-      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
-      color: var(--text-3); border-bottom: 1px solid var(--border);
-      position: sticky; top: 0; background: var(--bg); z-index: 1;
-    }
-    .drilldown-table td {
-      padding: 0.65rem 1rem; color: var(--text-2);
-      border-bottom: 1px solid var(--border);
-      max-width: 220px; overflow: hidden; text-overflow: ellipsis;
-    }
+    .drilldown-table th { padding: 0.6rem 0.875rem; text-align: left; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-3); border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 1; cursor: pointer; user-select: none; }
+    .drilldown-table th:hover { color: var(--brand-dark); }
+    .drilldown-table th.sorted-asc::after { content: ' ↑'; }
+    .drilldown-table th.sorted-desc::after { content: ' ↓'; }
+    .drilldown-table td { padding: 0.6rem 0.875rem; color: var(--text-2); border-bottom: 1px solid var(--border); max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
     .drilldown-table td:first-child { font-weight: 600; color: var(--text); }
     .drilldown-table tbody tr:last-child td { border-bottom: none; }
     .drilldown-table tbody tr:hover td { background: var(--brand-light); }
 
-    .tag-yes  { color: #1a7a4a; background: #d4f0e0; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600; font-size: 0.7rem; }
-    .tag-no   { color: #666; background: #eee; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.7rem; }
-    .tag-warn { color: #92400E; background: #FEF3C7; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 600; font-size: 0.7rem; }
+    /* Tags */
+    .tag-yes  { color: #1a7a4a; background: #d4f0e0; padding: 0.12rem 0.45rem; border-radius: 4px; font-weight: 600; font-size: 0.68rem; }
+    .tag-no   { color: #666; background: #eee; padding: 0.12rem 0.45rem; border-radius: 4px; font-size: 0.68rem; }
+    .tag-warn { color: #92400E; background: #FEF3C7; padding: 0.12rem 0.45rem; border-radius: 4px; font-weight: 600; font-size: 0.68rem; }
 
-    /* Clickable chart hint */
-    .chart-card[data-clickable] { cursor: pointer; }
-    .chart-card[data-clickable]:hover { border-color: var(--brand); }
-    .click-hint { font-size: 0.7rem; color: var(--text-3); margin-top: 0.5rem; }
+    /* Loading */
+    .loading-state { text-align: center; padding: 3rem; color: var(--text-3); font-size: 0.875rem; }
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--brand); border-radius: 50%; animation: spin 0.8s linear infinite; margin-right: 0.5rem; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Responsive */
-    @media (max-width: 900px) {
-      .kpi-row { grid-template-columns: 1fr 1fr; }
-      .grid-2, .grid-3 { grid-template-columns: 1fr; }
-      .chart-card.span-2 { grid-column: span 1; }
-    }
-    @media (max-width: 520px) {
-      .kpi-row { grid-template-columns: 1fr 1fr; }
-      .dash-main { padding: 1rem; }
-    }
+    @media (max-width: 1024px) { .kpi-row { grid-template-columns: 1fr 1fr; } .grid-4 { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 860px)  { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+    @media (max-width: 600px)  { .kpi-row { grid-template-columns: 1fr 1fr; } .dash-main, .dash-full { padding: 1rem; } }
   </style>
 </head>
 <body>
@@ -272,19 +151,12 @@
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo">
-      <img src="images/Datamine-logo.png" alt="Datamine"
-        onerror="this.src='https://raw.githubusercontent.com/dataminesoftware/datamine-conference/main/images/Datamine-logo.png'">
+      <img src="images/Datamine-logo.png" alt="Datamine" onerror="this.src='https://raw.githubusercontent.com/dataminesoftware/datamine-conference/main/images/Datamine-logo.png'">
     </div>
     <p class="login-title">Executive Dashboard</p>
     <p class="login-sub">DGC 2026 · Registration Analytics</p>
-    <div class="field">
-      <label for="d-email">Email</label>
-      <input type="email" id="d-email" placeholder="you@datamine.com" autocomplete="email">
-    </div>
-    <div class="field">
-      <label for="d-password">Password</label>
-      <input type="password" id="d-password" placeholder="••••••••" autocomplete="current-password">
-    </div>
+    <div class="field"><label for="d-email">Email</label><input type="email" id="d-email" placeholder="you@datamine.com" autocomplete="email"></div>
+    <div class="field"><label for="d-password">Password</label><input type="password" id="d-password" placeholder="••••••••" autocomplete="current-password"></div>
     <div class="login-error" id="d-error"></div>
     <button class="btn-login" id="d-login-btn" onclick="dashLogin()">Sign in</button>
   </div>
@@ -295,8 +167,7 @@
 
   <nav class="dash-nav">
     <div class="dash-nav-left">
-      <img src="images/Datamine-logo-white.png" alt="Datamine"
-        onerror="this.src='https://raw.githubusercontent.com/dataminesoftware/datamine-conference/main/images/Datamine-logo-white.png'">
+      <img src="images/Datamine-logo-white.png" alt="Datamine" onerror="this.src='https://raw.githubusercontent.com/dataminesoftware/datamine-conference/main/images/Datamine-logo-white.png'">
       <span class="dash-nav-title">DGC 2026 · Executive Dashboard</span>
     </div>
     <div class="dash-nav-right">
@@ -306,19 +177,14 @@
     </div>
   </nav>
 
+  <!-- Charts section — constrained width -->
   <div class="dash-main">
-
-    <!-- Loading -->
-    <div class="loading-state" id="dash-loading">
-      <span class="spinner"></span> Loading registration data…
-    </div>
-
-    <!-- Content -->
+    <div class="loading-state" id="dash-loading"><span class="spinner"></span> Loading registration data…</div>
     <div id="dash-content" style="display:none">
 
       <!-- KPIs -->
       <div class="kpi-row">
-        <div class="kpi-card accent">
+        <div class="kpi-card accent" id="kpi-total" style="cursor:pointer" title="Show all delegates">
           <span class="kpi-label">Total Registered</span>
           <span class="kpi-value" id="k-total">—</span>
           <span class="kpi-sub">delegates confirmed</span>
@@ -333,7 +199,7 @@
           <span class="kpi-value" id="k-units">—</span>
           <span class="kpi-sub">across the organisation</span>
         </div>
-        <div class="kpi-card">
+        <div class="kpi-card" id="kpi-transfers" style="cursor:pointer" title="Show delegates with transfers">
           <span class="kpi-label">Transfers Requested</span>
           <span class="kpi-value" id="k-transfers">—</span>
           <span class="kpi-sub">arrival or departure</span>
@@ -346,25 +212,35 @@
           <div class="chart-title">Geography</div>
           <div class="chart-subtitle">Delegates by country</div>
           <div class="chart-wrap tall"><canvas id="chart-countries"></canvas></div>
+          <p class="chart-hint">Click a bar to filter</p>
         </div>
         <div class="chart-card">
           <div class="chart-title">Organisation</div>
           <div class="chart-subtitle">Delegates by business unit</div>
           <div class="chart-wrap tall"><canvas id="chart-units"></canvas></div>
+          <p class="chart-hint">Click a bar to filter</p>
         </div>
       </div>
 
-      <!-- Row 2: Visa + Transfers -->
-      <div class="grid-2">
+      <!-- Row 2: Visa + Transfers + Insurance -->
+      <div class="grid-3">
         <div class="chart-card">
           <div class="chart-title">Travel</div>
           <div class="chart-subtitle">Visa status</div>
           <div class="chart-wrap"><canvas id="chart-visa"></canvas></div>
+          <p class="chart-hint">Click to filter</p>
         </div>
         <div class="chart-card">
           <div class="chart-title">Logistics</div>
-          <div class="chart-subtitle">Airport transfers requested</div>
+          <div class="chart-subtitle">Airport transfers</div>
           <div class="chart-wrap"><canvas id="chart-transfers"></canvas></div>
+          <p class="chart-hint">Click to filter</p>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Insurance</div>
+          <div class="chart-subtitle">Travel insurance status</div>
+          <div class="chart-wrap"><canvas id="chart-insurance"></canvas></div>
+          <p class="chart-hint">Click to filter</p>
         </div>
       </div>
 
@@ -372,7 +248,7 @@
       <div class="grid-3">
         <div class="chart-card">
           <div class="chart-title">Catering</div>
-          <div class="chart-subtitle">Dietary restrictions</div>
+          <div class="chart-subtitle">Dietary restrictions & allergies</div>
           <div class="chart-wrap short"><canvas id="chart-dietary"></canvas></div>
         </div>
         <div class="chart-card">
@@ -384,11 +260,12 @@
           <div class="chart-title">Merchandise</div>
           <div class="chart-subtitle">T-shirt sizes</div>
           <div class="chart-wrap short"><canvas id="chart-tshirt"></canvas></div>
+          <p class="chart-hint">Click to filter</p>
         </div>
       </div>
 
-      <!-- Row 4: World map (countries list) -->
-      <div class="grid-1">
+      <!-- Row 4: Countries map + Timeline side by side -->
+      <div class="grid-2">
         <div class="chart-card">
           <div class="chart-title">Global Reach</div>
           <div class="chart-subtitle">Countries represented</div>
@@ -397,10 +274,6 @@
             <div class="map-countries" id="map-countries"></div>
           </div>
         </div>
-      </div>
-
-      <!-- Row 5: Timeline -->
-      <div class="grid-1">
         <div class="chart-card">
           <div class="chart-title">Registration Timeline</div>
           <div class="chart-subtitle">Registrations per day</div>
@@ -408,143 +281,107 @@
         </div>
       </div>
 
-      <!-- Slicers + Drill-down table — always visible -->
-      <div class="grid-1" id="drilldown-wrap">
-        <div class="chart-card">
+    </div><!-- /dash-content -->
+  </div><!-- /dash-main -->
 
-          <!-- Header -->
-          <div class="drilldown-header">
-            <div>
-              <div class="chart-title">Delegate List</div>
-              <div class="chart-subtitle" id="drilldown-title">All registrations</div>
-            </div>
-            <div class="drilldown-actions">
-              <button class="btn-export" onclick="exportCSV()">↓ CSV</button>
-              <button class="btn-export btn-export-xl" onclick="exportXLSX()">↓ XLSX</button>
-              <button class="btn-clear" id="btn-clear" onclick="clearDrilldown()">✕ Clear filters</button>
-            </div>
-          </div>
+  <!-- Delegate list — full width -->
+  <div class="dash-full" id="drilldown-outer">
+    <div class="chart-card" id="drilldown-wrap">
 
-          <!-- Slicers -->
-          <div class="slicers-wrap">
-            <div class="slicer-group">
-              <label class="slicer-label">Country</label>
-              <select class="slicer-select" id="sl-country" onchange="applySlicers()">
-                <option value="">All countries</option>
-              </select>
-            </div>
-            <div class="slicer-group">
-              <label class="slicer-label">Business Unit</label>
-              <select class="slicer-select" id="sl-unit" onchange="applySlicers()">
-                <option value="">All units</option>
-              </select>
-            </div>
-            <div class="slicer-group">
-              <label class="slicer-label">Visa status</label>
-              <select class="slicer-select" id="sl-visa" onchange="applySlicers()">
-                <option value="">All</option>
-                <option value="no">Visa-free</option>
-                <option value="yes">Visa needed</option>
-                <option value="unsure">Unsure</option>
-                <option value="support-needed">Support letter needed</option>
-              </select>
-            </div>
-            <div class="slicer-group">
-              <label class="slicer-label">Arrival transfer</label>
-              <select class="slicer-select" id="sl-transfer-arr" onchange="applySlicers()">
-                <option value="">All</option>
-                <option value="yes">Requested</option>
-                <option value="no">Not needed</option>
-                <option value="unsure">Unsure</option>
-              </select>
-            </div>
-            <div class="slicer-group">
-              <label class="slicer-label">Departure transfer</label>
-              <select class="slicer-select" id="sl-transfer-dep" onchange="applySlicers()">
-                <option value="">All</option>
-                <option value="yes">Requested</option>
-                <option value="no">Not needed</option>
-                <option value="unsure">Unsure</option>
-              </select>
-            </div>
-            <div class="slicer-group">
-              <label class="slicer-label">Insurance</label>
-              <select class="slicer-select" id="sl-insurance" onchange="applySlicers()">
-                <option value="">All</option>
-                <option value="yes">Confirmed</option>
-                <option value="arranging">Arranging</option>
-                <option value="no">No</option>
-              </select>
-            </div>
-            <div class="slicer-group">
-              <label class="slicer-label">EpiPen</label>
-              <select class="slicer-select" id="sl-epipen" onchange="applySlicers()">
-                <option value="">All</option>
-                <option value="true">Yes</option>
-                <option value="false">No</option>
-              </select>
-            </div>
-            <div class="slicer-group">
-              <label class="slicer-label">Dietary</label>
-              <select class="slicer-select" id="sl-dietary" onchange="applySlicers()">
-                <option value="">All</option>
-                <option value="has">Has restrictions</option>
-                <option value="none">No restrictions</option>
-              </select>
-            </div>
-            <div class="slicer-group slicer-search">
-              <label class="slicer-label">Search</label>
-              <input class="slicer-input" id="sl-search" placeholder="Name or email…" oninput="applySlicers()">
-            </div>
-          </div>
-
-          <!-- Table -->
-          <div class="table-wrap">
-            <table class="drilldown-table" id="drilldown-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>WhatsApp</th>
-                  <th>Country</th>
-                  <th>Departure city</th>
-                  <th>Business unit</th>
-                  <th>Job title</th>
-                  <th>Office location</th>
-                  <th>Office country</th>
-                  <th>Arrival</th>
-                  <th>Departure</th>
-                  <th>Transfer arr.</th>
-                  <th>Transfer dep.</th>
-                  <th>Yellow fever</th>
-                  <th>Visa</th>
-                  <th>Dietary restrictions</th>
-                  <th>Allergies</th>
-                  <th>Dietary notes</th>
-                  <th>Medical conditions</th>
-                  <th>Medications</th>
-                  <th>EpiPen</th>
-                  <th>Emergency name</th>
-                  <th>Emergency relation</th>
-                  <th>Emergency phone</th>
-                  <th>Insurance</th>
-                  <th>Mobility</th>
-                  <th>Accessibility</th>
-                  <th>Topics</th>
-                  <th>T-shirt</th>
-                  <th>Submitted</th>
-                </tr>
-              </thead>
-              <tbody id="drilldown-tbody"></tbody>
-            </table>
-          </div>
-          <div class="drilldown-count" id="drilldown-count"></div>
+      <div class="drilldown-header">
+        <div>
+          <div class="chart-title">Delegate List</div>
+          <div class="chart-subtitle" id="drilldown-title">All registrations</div>
+        </div>
+        <div class="drilldown-actions">
+          <button class="btn-export" onclick="exportCSV()">↓ CSV</button>
+          <button class="btn-export btn-export-xl" onclick="exportXLSX()">↓ XLSX</button>
+          <button class="btn-clear" onclick="clearDrilldown()">✕ Clear filters</button>
         </div>
       </div>
 
-    </div><!-- /dash-content -->
+      <!-- Slicers -->
+      <div class="slicers-wrap">
+        <div class="slicer-group"><label class="slicer-label">Country</label><select class="slicer-select" id="sl-country" onchange="applySlicers()"><option value="">All countries</option></select></div>
+        <div class="slicer-group"><label class="slicer-label">Business Unit</label><select class="slicer-select" id="sl-unit" onchange="applySlicers()"><option value="">All units</option></select></div>
+        <div class="slicer-group"><label class="slicer-label">Visa status</label>
+          <select class="slicer-select" id="sl-visa" onchange="applySlicers()">
+            <option value="">All</option><option value="no">Visa-free</option><option value="yes">Visa needed</option><option value="unsure">Unsure</option><option value="support-needed">Support letter needed</option>
+          </select>
+        </div>
+        <div class="slicer-group"><label class="slicer-label">Arrival transfer</label>
+          <select class="slicer-select" id="sl-transfer-arr" onchange="applySlicers()">
+            <option value="">All</option><option value="yes">Requested</option><option value="no">Not needed</option><option value="unsure">Unsure</option>
+          </select>
+        </div>
+        <div class="slicer-group"><label class="slicer-label">Departure transfer</label>
+          <select class="slicer-select" id="sl-transfer-dep" onchange="applySlicers()">
+            <option value="">All</option><option value="yes">Requested</option><option value="no">Not needed</option><option value="unsure">Unsure</option>
+          </select>
+        </div>
+        <div class="slicer-group"><label class="slicer-label">Insurance</label>
+          <select class="slicer-select" id="sl-insurance" onchange="applySlicers()">
+            <option value="">All</option><option value="yes">Confirmed</option><option value="arranging">Arranging</option><option value="no">No</option>
+          </select>
+        </div>
+        <div class="slicer-group"><label class="slicer-label">EpiPen</label>
+          <select class="slicer-select" id="sl-epipen" onchange="applySlicers()">
+            <option value="">All</option><option value="true">Yes</option><option value="false">No</option>
+          </select>
+        </div>
+        <div class="slicer-group"><label class="slicer-label">Dietary</label>
+          <select class="slicer-select" id="sl-dietary" onchange="applySlicers()">
+            <option value="">All</option><option value="has">Has restrictions</option><option value="none">No restrictions</option>
+          </select>
+        </div>
+        <div class="slicer-group slicer-search"><label class="slicer-label">Search</label><input class="slicer-input" id="sl-search" placeholder="Name or email…" oninput="applySlicers()"></div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap">
+        <table class="drilldown-table" id="drilldown-table">
+          <thead>
+            <tr>
+              <th onclick="sortTable('full_name')">Name</th>
+              <th onclick="sortTable('work_email')">Email</th>
+              <th onclick="sortTable('whatsapp_number')">WhatsApp</th>
+              <th onclick="sortTable('country_of_residence')">Country</th>
+              <th onclick="sortTable('departure_city')">Departure city</th>
+              <th onclick="sortTable('business_unit')">Business unit</th>
+              <th onclick="sortTable('job_title')">Job title</th>
+              <th onclick="sortTable('office_location')">Office location</th>
+              <th onclick="sortTable('office_country')">Office country</th>
+              <th onclick="sortTable('arrival_datetime')">Arrival</th>
+              <th onclick="sortTable('departure_datetime')">Departure</th>
+              <th onclick="sortTable('airport_transfer_arrival')">Transfer arr.</th>
+              <th onclick="sortTable('airport_transfer_departure')">Transfer dep.</th>
+              <th onclick="sortTable('yellow_fever_certificate_required')">Yellow fever</th>
+              <th onclick="sortTable('visa_status')">Visa</th>
+              <th onclick="sortTable('dietary_restrictions')">Dietary</th>
+              <th onclick="sortTable('food_allergies')">Allergies</th>
+              <th>Dietary notes</th>
+              <th onclick="sortTable('medical_conditions')">Medical</th>
+              <th>Medications</th>
+              <th onclick="sortTable('carries_epipen')">EpiPen</th>
+              <th>Emergency name</th>
+              <th>Emergency relation</th>
+              <th>Emergency phone</th>
+              <th onclick="sortTable('travel_insurance_confirmed')">Insurance</th>
+              <th>Mobility</th>
+              <th>Accessibility</th>
+              <th>Topics</th>
+              <th onclick="sortTable('tshirt_size')">T-shirt</th>
+              <th onclick="sortTable('created_at')">Submitted</th>
+            </tr>
+          </thead>
+          <tbody id="drilldown-tbody"></tbody>
+        </table>
+      </div>
+      <div class="drilldown-count" id="drilldown-count"></div>
+    </div>
   </div>
-</div>
+
+</div><!-- /dashboard -->
 
 <script>
 'use strict';
@@ -556,97 +393,73 @@ const CFG = {
 
 let token = null;
 const charts = {};
+let allData = [];
+let activeFilter = null;
+let sortCol = 'created_at';
+let sortDir = 'asc';
 
-// ── PALETTE ──────────────────────────────────────────────
-const PALETTE = [
-  '#446C84','#638BA3','#83C3DB','#a8d4e6','#c8e8f4',
-  '#2d5568','#7aadbe','#4a8fa0','#b0d8e8','#3d7080',
-];
+const PALETTE = ['#446C84','#638BA3','#83C3DB','#a8d4e6','#c8e8f4','#2d5568','#7aadbe','#4a8fa0','#b0d8e8','#3d7080'];
+const palette = n => Array.from({length:n},(_,i)=>PALETTE[i%PALETTE.length]);
 
-function palette(n) {
-  const out = [];
-  for (let i = 0; i < n; i++) out.push(PALETTE[i % PALETTE.length]);
-  return out;
-}
-
-// ── AUTH ─────────────────────────────────────────────────
+// ── AUTH ──────────────────────────────────────────────────
 async function dashLogin() {
-  const email    = document.getElementById('d-email').value.trim();
+  const email = document.getElementById('d-email').value.trim();
   const password = document.getElementById('d-password').value;
-  const errEl    = document.getElementById('d-error');
-  const btn      = document.getElementById('d-login-btn');
-
+  const errEl = document.getElementById('d-error');
+  const btn = document.getElementById('d-login-btn');
   if (!email || !password) { errEl.textContent = 'Please enter your email and password.'; return; }
-
   btn.disabled = true; btn.textContent = 'Signing in…'; errEl.textContent = '';
-
   try {
-    const res  = await fetch(`${CFG.URL}/auth/v1/token?grant_type=password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': CFG.KEY },
-      body: JSON.stringify({ email, password }),
+    const res = await fetch(`${CFG.URL}/auth/v1/token?grant_type=password`, {
+      method:'POST', headers:{'Content-Type':'application/json','apikey':CFG.KEY},
+      body: JSON.stringify({email,password}),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error_description || data.message || 'Invalid credentials.');
     token = data.access_token || data?.session?.access_token;
     if (!token) throw new Error('No token received.');
-
-    document.getElementById('login-screen').setAttribute('hidden', '');
+    document.getElementById('login-screen').setAttribute('hidden','');
     document.getElementById('dashboard').classList.add('visible');
     await loadDashboard();
-  } catch (e) {
-    errEl.textContent = e.message;
-  } finally {
-    btn.disabled = false; btn.textContent = 'Sign in';
-  }
+  } catch(e) { errEl.textContent = e.message; }
+  finally { btn.disabled=false; btn.textContent='Sign in'; }
 }
 
 async function dashLogout() {
-  if (token) {
-    fetch(`${CFG.URL}/auth/v1/logout`, {
-      method: 'POST',
-      headers: { 'apikey': CFG.KEY, 'Authorization': 'Bearer ' + token },
-    }).catch(() => {});
-    token = null;
-  }
+  if (token) { fetch(`${CFG.URL}/auth/v1/logout`,{method:'POST',headers:{'apikey':CFG.KEY,'Authorization':'Bearer '+token}}).catch(()=>{}); token=null; }
   document.getElementById('dashboard').classList.remove('visible');
   document.getElementById('login-screen').removeAttribute('hidden');
-  document.getElementById('d-password').value = '';
+  document.getElementById('d-password').value='';
 }
 
 document.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !document.getElementById('login-screen').hidden) dashLogin();
+  if (e.key==='Enter' && !document.getElementById('login-screen').hidden) dashLogin();
 });
 
 // ── DATA ──────────────────────────────────────────────────
 async function fetchAll() {
-  const res = await fetch(
-    `${CFG.URL}/rest/v1/registrations?select=*&order=created_at.asc`,
-    { headers: { 'apikey': CFG.KEY, 'Authorization': 'Bearer ' + token } }
-  );
+  const res = await fetch(`${CFG.URL}/rest/v1/registrations?select=*&order=created_at.asc`,
+    {headers:{'apikey':CFG.KEY,'Authorization':'Bearer '+token}});
   if (!res.ok) throw new Error('Failed to load data.');
   return res.json();
 }
 
-// ── DASHBOARD ─────────────────────────────────────────────
 async function loadDashboard() {
-  document.getElementById('dash-loading').style.display = 'block';
-  document.getElementById('dash-content').style.display = 'none';
-
+  document.getElementById('dash-loading').style.display='block';
+  document.getElementById('dash-content').style.display='none';
   try {
     const data = await fetchAll();
+    // Destroy all existing charts before re-rendering
+    Object.values(charts).forEach(c => { try { c.destroy(); } catch(e){} });
+    Object.keys(charts).forEach(k => delete charts[k]);
     renderDashboard(data);
-    document.getElementById('dash-updated').textContent =
-      'Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  } catch (e) {
-    document.getElementById('dash-loading').textContent = 'Error loading data. Try refreshing.';
-    return;
-  }
-
-  document.getElementById('dash-loading').style.display = 'none';
-  document.getElementById('dash-content').style.display = 'block';
+    document.getElementById('dash-updated').textContent='Updated '+new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  } catch(e) { document.getElementById('dash-loading').textContent='Error loading data. Try refreshing.'; return; }
+  document.getElementById('dash-loading').style.display='none';
+  document.getElementById('dash-content').style.display='block';
 }
 
+// ── RENDER ────────────────────────────────────────────────
 function renderDashboard(data) {
   allData = data;
   activeFilter = null;
@@ -654,580 +467,329 @@ function renderDashboard(data) {
   renderTable(data);
   const n = data.length;
 
-  // ── KPIs ──
+  // KPIs
   setText('k-total', n);
-  document.getElementById('k-total').closest('.kpi-card').style.cursor = 'pointer';
-  document.getElementById('k-total').closest('.kpi-card').onclick = () => clearDrilldown();
-  const countries = unique(data, 'country_of_residence');
-  setText('k-countries', countries.length);
-  const units = unique(data, 'business_unit');
-  setText('k-units', units.length);
-  const transfers = data.filter(r =>
-    r.airport_transfer_arrival === 'yes' || r.airport_transfer_departure === 'yes'
-  ).length;
+  setText('k-countries', unique(data,'country_of_residence').length);
+  setText('k-units', unique(data,'business_unit').length);
+  const transfers = data.filter(r=>r.airport_transfer_arrival==='yes'||r.airport_transfer_departure==='yes').length;
   setText('k-transfers', transfers);
-  document.getElementById('k-transfers').closest('.kpi-card').style.cursor = 'pointer';
-  document.getElementById('k-transfers').closest('.kpi-card').onclick = () => {
-    document.getElementById('sl-transfer-arr').value = 'yes';
-    activeFilter = null;
-    document.getElementById('drilldown-title').textContent = 'Transfer requested';
-    applySlicers();
+
+  document.getElementById('kpi-total').onclick = ()=>clearDrilldown();
+  document.getElementById('kpi-transfers').onclick = ()=>{ document.getElementById('sl-transfer-arr').value='yes'; activeFilter=null; document.getElementById('drilldown-title').textContent='Transfer requested'; applySlicers(); };
+
+  // Countries
+  const cCount = count(data,'country_of_residence');
+  makeBar('chart-countries', cCount, 'Delegates');
+  addChartClick('chart-countries','country_of_residence',null);
+
+  // Business units
+  const uCount = count(data,'business_unit');
+  makeBar('chart-units', uCount, 'Delegates');
+  addChartClick('chart-units','business_unit',null);
+
+  // Visa
+  const visaMap = {no:'Visa-free',yes:'Visa needed',unsure:'Unsure','support-needed':'Support letter','':'Not specified'};
+  makeDoughnut('chart-visa', countMapped(data,'visa_status',visaMap));
+  addChartClick('chart-visa','visa_status',visaMap);
+
+  // Transfers grouped
+  const tMap = {yes:'Yes',no:'No',unsure:'Unsure','':'Not specified'};
+  const arrCount = countMapped(data,'airport_transfer_arrival',tMap);
+  const depCount = countMapped(data,'airport_transfer_departure',tMap);
+  const tKeys = [...new Set([...Object.keys(arrCount),...Object.keys(depCount)])];
+  makeGroupedBar('chart-transfers', tKeys, [
+    {label:'Arrival', data:tKeys.map(k=>arrCount[k]||0), backgroundColor:'#446C84'},
+    {label:'Departure', data:tKeys.map(k=>depCount[k]||0), backgroundColor:'#83C3DB'},
+  ]);
+
+  // Insurance — separate card
+  const insMap = {yes:'Confirmed',arranging:'Arranging',no:'No','':'Not specified'};
+  makeDoughnut('chart-insurance', countMapped(data,'travel_insurance_confirmed',insMap));
+  addChartClick('chart-insurance','travel_insurance_confirmed',insMap);
+
+  // Dietary — has restriction vs none + allergy count
+  const hasDietary = data.filter(r=>r.dietary_restrictions&&r.dietary_restrictions.toLowerCase()!=='none').length;
+  const hasAllergy = data.filter(r=>r.food_allergies&&r.food_allergies.toLowerCase()!=='none').length;
+  makeBar('chart-dietary',{'Has dietary restrictions':hasDietary,'Has food allergies':hasAllergy,'No restrictions':n-hasDietary},'Delegates',true);
+
+  // Medical
+  const hasMedical = data.filter(r=>r.medical_conditions&&r.medical_conditions.toLowerCase()!=='none').length;
+  const hasEpipen = data.filter(r=>r.carries_epipen===true).length;
+  makeBar('chart-medical',{'Medical conditions':hasMedical,'Carries EpiPen':hasEpipen},'Delegates',true);
+
+  // T-shirt
+  const sizes = ['XS','S','M','L','XL','XXL','3XL','4XL'];
+  const tCount = count(data,'tshirt_size');
+  const tOrdered = {};
+  sizes.forEach(s=>{ if(tCount[s]!==undefined) tOrdered[s]=tCount[s]; });
+  Object.keys(tCount).forEach(k=>{ if(!tOrdered[k]) tOrdered[k]=tCount[k]; });
+  makeBar('chart-tshirt', tOrdered, 'Delegates', true);
+  addChartClick('chart-tshirt','tshirt_size',null);
+
+  // Map
+  const sorted = Object.entries(cCount).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('map-label').textContent=`${unique(data,'country_of_residence').length} countries · ${n} delegates`;
+  document.getElementById('map-countries').innerHTML=sorted.map(([c,cnt])=>`<span class="map-country-tag" data-country="${esc(c)}" title="Filter by ${esc(c)}">${esc(c)} <strong>${cnt}</strong></span>`).join('');
+  document.getElementById('map-countries').onclick=e=>{
+    const tag=e.target.closest('.map-country-tag'); if(!tag) return;
+    document.getElementById('sl-country').value=tag.dataset.country; activeFilter=null;
+    document.getElementById('drilldown-title').textContent=tag.dataset.country; applySlicers();
   };
 
-  // ── Countries bar chart ──
-  const cCount = count(data, 'country_of_residence');
-  renderBar('chart-countries', cCount, 'Delegates');
-  addChartClick('chart-countries', 'country_of_residence', null);
-
-  // ── Business units bar chart ──
-  const uCount = count(data, 'business_unit');
-  renderBar('chart-units', uCount, 'Delegates');
-  addChartClick('chart-units', 'business_unit', null);
-
-  // ── Visa doughnut ──
-  const visaLabels = { no: 'Visa-free', yes: 'Visa needed', unsure: 'Unsure', 'support-needed': 'Support letter needed', '': 'Not specified' };
-  const vCount = countMapped(data, 'visa_status', visaLabels);
-  renderDoughnut('chart-visa', vCount);
-  addChartClick('chart-visa', 'visa_status', visaLabels);
-
-  // ── Transfers grouped bar ──
-  const arrLabel = { yes: 'Yes', no: 'No', unsure: 'Unsure', '': 'Not specified' };
-  const arrCount = countMapped(data, 'airport_transfer_arrival', arrLabel);
-  const depCount = countMapped(data, 'airport_transfer_departure', arrLabel);
-  const tKeys = [...new Set([...Object.keys(arrCount), ...Object.keys(depCount)])];
-  renderGroupedBar('chart-transfers',
-    tKeys,
-    [
-      { label: 'Arrival', data: tKeys.map(k => arrCount[k] || 0), backgroundColor: '#446C84' },
-      { label: 'Departure', data: tKeys.map(k => depCount[k] || 0), backgroundColor: '#83C3DB' },
-    ]
-  );
-
-  // ── Dietary ──
-  const hasRestriction = data.filter(r => r.dietary_restrictions && r.dietary_restrictions.toLowerCase() !== 'none').length;
-  renderDoughnut('chart-dietary', {
-    'Has restrictions': hasRestriction,
-    'No restrictions': n - hasRestriction,
-  });
-
-  // ── Medical ──
-  const hasMedical  = data.filter(r => r.medical_conditions && r.medical_conditions.toLowerCase() !== 'none').length;
-  const hasEpipen   = data.filter(r => r.carries_epipen === true).length;
-  const hasInsurance= data.filter(r => r.travel_insurance_confirmed === 'yes').length;
-  renderBar('chart-medical', {
-    'Medical conditions': hasMedical,
-    'Carries EpiPen': hasEpipen,
-    'Insurance confirmed': hasInsurance,
-  }, 'Delegates', true);
-
-  // ── T-shirt ──
-  const sizeOrder = ['XS','S','M','L','XL','XXL','3XL','4XL'];
-  const tCount = count(data, 'tshirt_size');
-  const tOrdered = {};
-  sizeOrder.forEach(s => { if (tCount[s] !== undefined) tOrdered[s] = tCount[s]; });
-  Object.keys(tCount).forEach(k => { if (!tOrdered[k]) tOrdered[k] = tCount[k]; });
-  renderBar('chart-tshirt', tOrdered, 'Delegates', true);
-  addChartClick('chart-tshirt', 'tshirt_size', null);
-
-  // ── World map (country tags) ──
-  const sortedCountries = Object.entries(cCount).sort((a,b) => b[1]-a[1]);
-  const mapEl = document.getElementById('map-countries');
-  const mapLabel = document.getElementById('map-label');
-  mapLabel.textContent = `${countries.length} ${countries.length === 1 ? 'country' : 'countries'} · ${n} ${n === 1 ? 'delegate' : 'delegates'}`;
-  mapEl.innerHTML = sortedCountries.map(([c, cnt]) =>
-    `<span class="map-country-tag" data-country="${esc(c)}" style="cursor:pointer" title="Click to filter">${esc(c)} <strong>${cnt}</strong></span>`
-  ).join('');
-  addMapClick();
-
-  // ── Timeline ──
-  const byDate = {};
-  data.forEach(r => {
-    if (!r.created_at) return;
-    const d = r.created_at.slice(0, 10);
-    byDate[d] = (byDate[d] || 0) + 1;
-  });
-  const dates = Object.keys(byDate).sort();
-  const maxCount = Math.max(...Object.values(byDate), 1);
-  const tlEl = document.getElementById('timeline');
-  tlEl.innerHTML = dates.length === 0
-    ? '<p style="color:var(--text-3);font-size:.875rem;padding:1rem 0">No data yet.</p>'
-    : dates.map(d => {
-        const pct = Math.max(6, (byDate[d] / maxCount) * 100);
-        return `<div class="timeline-row" style="cursor:pointer" title="Click to filter">
-          <span class="timeline-date" data-iso="${d}">${formatDate(d)}</span>
-          <div class="timeline-bar-wrap">
-            <div class="timeline-bar" style="width:${pct}%">
-              <span class="timeline-count">${byDate[d]}</span>
-            </div>
-          </div>
-        </div>`;
-      }).join('');
-  addTimelineClick();
+  // Timeline
+  const byDate={};
+  data.forEach(r=>{ if(!r.created_at) return; const d=r.created_at.slice(0,10); byDate[d]=(byDate[d]||0)+1; });
+  const dates=Object.keys(byDate).sort();
+  const maxC=Math.max(...Object.values(byDate),1);
+  const tlEl=document.getElementById('timeline');
+  tlEl.innerHTML=dates.length===0
+    ?'<p style="color:var(--text-3);font-size:.8rem">No data yet.</p>'
+    :dates.map(d=>`<div class="timeline-row" title="Click to filter">
+        <span class="timeline-date" data-iso="${d}">${fmtDate(d)}</span>
+        <div class="timeline-bar-wrap"><div class="timeline-bar" style="width:${Math.max(6,(byDate[d]/maxC)*100)}%"><span class="timeline-count">${byDate[d]}</span></div></div>
+      </div>`).join('');
+  tlEl.onclick=e=>{
+    const row=e.target.closest('.timeline-row'); if(!row) return;
+    const iso=row.querySelector('.timeline-date').dataset.iso; if(!iso) return;
+    activeFilter={field:'_date_',rawVal:iso};
+    document.getElementById('drilldown-title').textContent='Registered on '+fmtDate(iso);
+    ['sl-country','sl-unit','sl-visa','sl-transfer-arr','sl-transfer-dep','sl-insurance','sl-epipen','sl-dietary','sl-search'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    applySlicers();
+  };
 }
 
-// ── CHART HELPERS ─────────────────────────────────────────
-const chartDefaults = {
-  plugins: { legend: { display: false } },
-  scales: {
-    x: { grid: { display: false }, ticks: { font: { size: 11, family: 'Inter' }, color: '#8AA0AE' } },
-    y: { grid: { color: '#EEF3F7' }, ticks: { font: { size: 11, family: 'Inter' }, color: '#8AA0AE', precision: 0 } },
-  },
-};
-
-function renderBar(id, obj, label = 'Count', horizontal = false) {
-  const labels = Object.keys(obj);
-  const values = Object.values(obj);
-  const type = horizontal ? 'bar' : 'bar';
-  const indexAxis = horizontal ? 'y' : 'x';
-
-  if (charts[id]) charts[id].destroy();
-  charts[id] = new Chart(document.getElementById(id), {
-    type,
-    data: {
-      labels,
-      datasets: [{ label, data: values, backgroundColor: palette(labels.length), borderRadius: 6, borderSkipped: false }],
-    },
-    options: {
-      indexAxis,
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { display: indexAxis === 'y' ? false : true, color: '#EEF3F7' }, ticks: { font: { size: 11, family: 'Inter' }, color: '#8AA0AE' } },
-        y: { grid: { display: indexAxis === 'x' ? false : true, color: '#EEF3F7' }, ticks: { font: { size: 11, family: 'Inter' }, color: '#8AA0AE', precision: 0 } },
-      },
-    },
-  });
-}
-
-function renderDoughnut(id, obj) {
-  const labels = Object.keys(obj);
-  const values = Object.values(obj);
-  if (charts[id]) charts[id].destroy();
-  charts[id] = new Chart(document.getElementById(id), {
-    type: 'doughnut',
-    data: {
-      labels,
-      datasets: [{ data: values, backgroundColor: palette(labels.length), borderWidth: 2, borderColor: '#fff' }],
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      cutout: '62%',
-      plugins: {
-        legend: { position: 'bottom', labels: { font: { size: 11, family: 'Inter' }, color: '#4A6070', padding: 14, boxWidth: 10 } },
-      },
-    },
-  });
-}
-
-function renderGroupedBar(id, labels, datasets) {
-  if (charts[id]) charts[id].destroy();
-  charts[id] = new Chart(document.getElementById(id), {
-    type: 'bar',
-    data: { labels, datasets: datasets.map(d => ({ ...d, borderRadius: 4, borderSkipped: false })) },
-    options: {
-      responsive: true,
-      maintainAspectRatio: true,
-      plugins: {
-        legend: { position: 'bottom', labels: { font: { size: 11, family: 'Inter' }, color: '#4A6070', padding: 14, boxWidth: 10 } },
-      },
-      scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 11, family: 'Inter' }, color: '#8AA0AE' } },
-        y: { grid: { color: '#EEF3F7' }, ticks: { font: { size: 11, family: 'Inter' }, color: '#8AA0AE', precision: 0 } },
-      },
-    },
-  });
-}
-
-// ── DRILLDOWN & SLICERS ───────────────────────────────────
-let allData = [];
-let activeFilter = null; // { field, value, label } from chart click
-
+// ── SLICERS ───────────────────────────────────────────────
 function populateSlicers(data) {
-  const countries = [...new Set(data.map(r => r.country_of_residence).filter(Boolean))].sort();
-  const units     = [...new Set(data.map(r => r.business_unit).filter(Boolean))].sort();
-
-  const slCountry = document.getElementById('sl-country');
-  const slUnit    = document.getElementById('sl-unit');
-
-  slCountry.innerHTML = '<option value="">All countries</option>' +
-    countries.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
-  slUnit.innerHTML = '<option value="">All units</option>' +
-    units.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+  const countries=[...new Set(data.map(r=>r.country_of_residence).filter(Boolean))].sort();
+  const units=[...new Set(data.map(r=>r.business_unit).filter(Boolean))].sort();
+  document.getElementById('sl-country').innerHTML='<option value="">All countries</option>'+countries.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  document.getElementById('sl-unit').innerHTML='<option value="">All units</option>'+units.map(u=>`<option value="${esc(u)}">${esc(u)}</option>`).join('');
 }
 
 function applySlicers() {
-  const country  = document.getElementById('sl-country').value;
-  const unit     = document.getElementById('sl-unit').value;
-  const visa     = document.getElementById('sl-visa').value;
-  const tArr     = document.getElementById('sl-transfer-arr').value;
-  const tDep     = document.getElementById('sl-transfer-dep').value;
-  const insurance= document.getElementById('sl-insurance').value;
-  const epipen   = document.getElementById('sl-epipen').value;
-  const dietary  = document.getElementById('sl-dietary').value;
-  const search   = document.getElementById('sl-search').value.toLowerCase().trim();
+  const country=document.getElementById('sl-country').value;
+  const unit=document.getElementById('sl-unit').value;
+  const visa=document.getElementById('sl-visa').value;
+  const tArr=document.getElementById('sl-transfer-arr').value;
+  const tDep=document.getElementById('sl-transfer-dep').value;
+  const insurance=document.getElementById('sl-insurance').value;
+  const epipen=document.getElementById('sl-epipen').value;
+  const dietary=document.getElementById('sl-dietary').value;
+  const search=document.getElementById('sl-search').value.toLowerCase().trim();
 
-  let filtered = allData;
-  if (activeFilter) {
-    if (activeFilter.field === '_date_') {
-      filtered = filtered.filter(r => r.created_at && r.created_at.slice(0,10) === activeFilter.rawVal);
-    } else {
-      filtered = filtered.filter(r => {
-        const v = r[activeFilter.field] ?? '';
-        return activeFilter.rawVal !== undefined ? String(v) === activeFilter.rawVal : (r[activeFilter.field] || 'Not specified') === activeFilter.label;
-      });
-    }
+  let f=allData;
+  if(activeFilter){
+    if(activeFilter.field==='_date_') f=f.filter(r=>r.created_at&&r.created_at.slice(0,10)===activeFilter.rawVal);
+    else f=f.filter(r=>{const v=r[activeFilter.field]??''; return activeFilter.rawVal!==undefined?String(v)===activeFilter.rawVal:(r[activeFilter.field]||'Not specified')===activeFilter.label;});
   }
-  if (country)   filtered = filtered.filter(r => r.country_of_residence === country);
-  if (unit)      filtered = filtered.filter(r => r.business_unit === unit);
-  if (visa)      filtered = filtered.filter(r => (r.visa_status ?? '') === visa);
-  if (tArr)      filtered = filtered.filter(r => (r.airport_transfer_arrival ?? '') === tArr);
-  if (tDep)      filtered = filtered.filter(r => (r.airport_transfer_departure ?? '') === tDep);
-  if (insurance) filtered = filtered.filter(r => (r.travel_insurance_confirmed ?? '') === insurance);
-  if (epipen)    filtered = filtered.filter(r => String(r.carries_epipen ?? 'false') === epipen);
-  if (dietary === 'has')  filtered = filtered.filter(r => r.dietary_restrictions && r.dietary_restrictions.toLowerCase() !== 'none');
-  if (dietary === 'none') filtered = filtered.filter(r => !r.dietary_restrictions || r.dietary_restrictions.toLowerCase() === 'none');
-  if (search)    filtered = filtered.filter(r =>
-    (r.full_name || '').toLowerCase().includes(search) ||
-    (r.work_email || '').toLowerCase().includes(search)
-  );
-
-  renderTable(filtered);
-}
-
-function showDrilldown(title, label, field, rawVal) {
-  activeFilter = field ? { field, rawVal, label } : null;
-  document.getElementById('drilldown-title').textContent = title;
-  ['sl-country','sl-unit','sl-visa','sl-transfer-arr','sl-transfer-dep','sl-insurance','sl-epipen','sl-dietary','sl-search']
-    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-  applySlicers();
+  if(country)   f=f.filter(r=>r.country_of_residence===country);
+  if(unit)      f=f.filter(r=>r.business_unit===unit);
+  if(visa)      f=f.filter(r=>(r.visa_status??'')===visa);
+  if(tArr)      f=f.filter(r=>(r.airport_transfer_arrival??'')===tArr);
+  if(tDep)      f=f.filter(r=>(r.airport_transfer_departure??'')===tDep);
+  if(insurance) f=f.filter(r=>(r.travel_insurance_confirmed??'')===insurance);
+  if(epipen)    f=f.filter(r=>String(r.carries_epipen??'false')===epipen);
+  if(dietary==='has')  f=f.filter(r=>r.dietary_restrictions&&r.dietary_restrictions.toLowerCase()!=='none');
+  if(dietary==='none') f=f.filter(r=>!r.dietary_restrictions||r.dietary_restrictions.toLowerCase()==='none');
+  if(search)    f=f.filter(r=>(r.full_name||'').toLowerCase().includes(search)||(r.work_email||'').toLowerCase().includes(search));
+  renderTable(f);
 }
 
 function clearDrilldown() {
-  activeFilter = null;
-  document.getElementById('drilldown-title').textContent = 'All registrations';
-  ['sl-country','sl-unit','sl-visa','sl-transfer-arr','sl-transfer-dep','sl-insurance','sl-epipen','sl-dietary','sl-search']
-    .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  activeFilter=null;
+  document.getElementById('drilldown-title').textContent='All registrations';
+  ['sl-country','sl-unit','sl-visa','sl-transfer-arr','sl-transfer-dep','sl-insurance','sl-epipen','sl-dietary','sl-search'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   renderTable(allData);
 }
 
+// ── TABLE ─────────────────────────────────────────────────
 function renderTable(rows) {
-  const tbody = document.getElementById('drilldown-tbody');
-  document.getElementById('drilldown-count').textContent =
-    `${rows.length} ${rows.length === 1 ? 'delegate' : 'delegates'}`;
+  // Sort
+  rows=[...rows].sort((a,b)=>{
+    const av=a[sortCol]??''; const bv=b[sortCol]??'';
+    return sortDir==='asc'?String(av).localeCompare(String(bv),undefined,{numeric:true}):String(bv).localeCompare(String(av),undefined,{numeric:true});
+  });
+  document.getElementById('drilldown-count').textContent=`${rows.length} ${rows.length===1?'delegate':'delegates'}`;
+  // Update sort indicators
+  document.querySelectorAll('.drilldown-table th').forEach(th=>th.classList.remove('sorted-asc','sorted-desc'));
+  const ths=document.querySelectorAll('.drilldown-table th');
+  ths.forEach(th=>{ if(th.getAttribute('onclick')===`sortTable('${sortCol}')`) th.classList.add(sortDir==='asc'?'sorted-asc':'sorted-desc'); });
 
-  if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="30" style="text-align:center;color:var(--text-3);padding:2rem">No delegates match this filter.</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = rows.map(r => {
-    const arr = fmtDt(r.arrival_datetime);
-    const dep = fmtDt(r.departure_datetime);
-    const sub = r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) : '—';
-
-    return `<tr>
-      <td title="${esc(r.full_name)}">${esc(r.full_name || '—')}</td>
-      <td title="${esc(r.work_email)}">${esc(r.work_email || '—')}</td>
-      <td>${esc(r.whatsapp_number || '—')}</td>
-      <td>${esc(r.country_of_residence || '—')}</td>
-      <td>${esc(r.departure_city || '—')}</td>
-      <td>${esc(r.business_unit || '—')}</td>
-      <td>${esc(r.job_title || '—')}</td>
-      <td>${esc(r.office_location || '—')}</td>
-      <td>${esc(r.office_country || '—')}</td>
-      <td>${arr}</td>
-      <td>${dep}</td>
-      <td>${yesNoTag(r.airport_transfer_arrival)}</td>
-      <td>${yesNoTag(r.airport_transfer_departure)}</td>
-      <td>${esc(r.yellow_fever_certificate_required || '—')}</td>
-      <td>${esc(r.visa_status || '—')}</td>
-      <td>${esc(r.dietary_restrictions || '—')}</td>
-      <td>${esc(r.food_allergies || '—')}</td>
-      <td title="${esc(r.dietary_notes)}">${esc(trunc(r.dietary_notes))}</td>
-      <td>${medTag(r.medical_conditions)}</td>
-      <td>${esc(r.medications || '—')}</td>
-      <td>${r.carries_epipen ? '<span class="tag-warn">Yes</span>' : '<span class="tag-no">No</span>'}</td>
-      <td>${esc(r.emergency_contact_name || '—')}</td>
-      <td>${esc(r.emergency_contact_relationship || '—')}</td>
-      <td>${esc(r.emergency_contact_phone || '—')}</td>
-      <td>${insuranceTag(r.travel_insurance_confirmed)}</td>
-      <td>${esc(trunc(r.mobility_requirements))}</td>
-      <td>${esc(trunc(r.accessibility_requirements))}</td>
-      <td title="${esc(r.preferred_topics)}">${esc(trunc(r.preferred_topics))}</td>
-      <td>${esc(r.tshirt_size || '—')}</td>
-      <td>${sub}</td>
-    </tr>`;
-  }).join('');
+  const tbody=document.getElementById('drilldown-tbody');
+  if(!rows.length){ tbody.innerHTML=`<tr><td colspan="30" style="text-align:center;color:var(--text-3);padding:2rem">No delegates match this filter.</td></tr>`; return; }
+  tbody.innerHTML=rows.map(r=>`<tr>
+    <td title="${esc(r.full_name)}">${esc(r.full_name||'—')}</td>
+    <td title="${esc(r.work_email)}">${esc(r.work_email||'—')}</td>
+    <td>${esc(r.whatsapp_number||'—')}</td>
+    <td>${esc(r.country_of_residence||'—')}</td>
+    <td>${esc(r.departure_city||'—')}</td>
+    <td>${esc(r.business_unit||'—')}</td>
+    <td>${esc(r.job_title||'—')}</td>
+    <td>${esc(r.office_location||'—')}</td>
+    <td>${esc(r.office_country||'—')}</td>
+    <td>${fmtDt(r.arrival_datetime)}</td>
+    <td>${fmtDt(r.departure_datetime)}</td>
+    <td>${yesNoTag(r.airport_transfer_arrival)}</td>
+    <td>${yesNoTag(r.airport_transfer_departure)}</td>
+    <td>${esc(r.yellow_fever_certificate_required||'—')}</td>
+    <td>${esc(r.visa_status||'—')}</td>
+    <td>${esc(r.dietary_restrictions||'—')}</td>
+    <td>${esc(r.food_allergies||'—')}</td>
+    <td title="${esc(r.dietary_notes)}">${esc(trunc(r.dietary_notes))}</td>
+    <td>${medTag(r.medical_conditions)}</td>
+    <td>${esc(r.medications||'—')}</td>
+    <td>${r.carries_epipen?'<span class="tag-warn">Yes</span>':'<span class="tag-no">No</span>'}</td>
+    <td>${esc(r.emergency_contact_name||'—')}</td>
+    <td>${esc(r.emergency_contact_relationship||'—')}</td>
+    <td>${esc(r.emergency_contact_phone||'—')}</td>
+    <td>${insuranceTag(r.travel_insurance_confirmed)}</td>
+    <td>${esc(trunc(r.mobility_requirements))}</td>
+    <td>${esc(trunc(r.accessibility_requirements))}</td>
+    <td title="${esc(r.preferred_topics)}">${esc(trunc(r.preferred_topics))}</td>
+    <td>${esc(r.tshirt_size||'—')}</td>
+    <td>${r.created_at?new Date(r.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—'}</td>
+  </tr>`).join('');
 }
 
-function trunc(val, n = 40) {
-  if (!val) return '—';
-  return val.length > n ? val.slice(0, n) + '…' : val;
+function sortTable(col) {
+  if(sortCol===col) sortDir=sortDir==='asc'?'desc':'asc';
+  else { sortCol=col; sortDir='asc'; }
+  applySlicers();
 }
 
-function fmtDt(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+// ── CHART HELPERS ─────────────────────────────────────────
+function makeBar(id, obj, label='Count', horizontal=false) {
+  const labels=Object.keys(obj); const values=Object.values(obj);
+  if(charts[id]) { try{charts[id].destroy();}catch(e){} }
+  charts[id]=new Chart(document.getElementById(id),{
+    type:'bar',
+    data:{labels,datasets:[{label,data:values,backgroundColor:palette(labels.length),borderRadius:5,borderSkipped:false}]},
+    options:{indexAxis:horizontal?'y':'x',responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{display:!horizontal,color:'#EEF3F7'},ticks:{font:{size:10,family:'Inter'},color:'#8AA0AE'}},
+        y:{grid:{display:horizontal,color:'#EEF3F7'},ticks:{font:{size:10,family:'Inter'},color:'#8AA0AE',precision:0}},
+      }},
+  });
+}
+
+function makeDoughnut(id, obj) {
+  const labels=Object.keys(obj); const values=Object.values(obj);
+  if(charts[id]) { try{charts[id].destroy();}catch(e){} }
+  charts[id]=new Chart(document.getElementById(id),{
+    type:'doughnut',
+    data:{labels,datasets:[{data:values,backgroundColor:palette(labels.length),borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:true,cutout:'60%',plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'Inter'},color:'#4A6070',padding:10,boxWidth:9}}}},
+  });
+}
+
+function makeGroupedBar(id, labels, datasets) {
+  if(charts[id]) { try{charts[id].destroy();}catch(e){} }
+  charts[id]=new Chart(document.getElementById(id),{
+    type:'bar',
+    data:{labels,datasets:datasets.map(d=>({...d,borderRadius:4,borderSkipped:false}))},
+    options:{responsive:true,maintainAspectRatio:true,
+      plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'Inter'},color:'#4A6070',padding:10,boxWidth:9}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:10,family:'Inter'},color:'#8AA0AE'}},
+        y:{grid:{color:'#EEF3F7'},ticks:{font:{size:10,family:'Inter'},color:'#8AA0AE',precision:0}},
+      }},
+  });
+}
+
+function addChartClick(chartId, dataKey, labelMap) {
+  const canvas=document.getElementById(chartId);
+  canvas.style.cursor='pointer';
+  canvas.onclick=evt=>{
+    const chart=charts[chartId]; if(!chart) return;
+    const pts=chart.getElementsAtEventForMode(evt,'nearest',{intersect:true},true);
+    if(!pts.length) return;
+    const label=chart.data.labels[pts[0].index];
+    let rawVal;
+    if(labelMap) rawVal=Object.entries(labelMap).find(([,v])=>v===label)?.[0];
+    activeFilter=rawVal!==undefined?{field:dataKey,rawVal}:{field:dataKey,label};
+    document.getElementById('drilldown-title').textContent=label;
+    ['sl-country','sl-unit','sl-visa','sl-transfer-arr','sl-transfer-dep','sl-insurance','sl-epipen','sl-dietary','sl-search'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    applySlicers();
+    document.getElementById('drilldown-wrap').scrollIntoView({behavior:'smooth',block:'start'});
+  };
 }
 
 // ── EXPORTS ───────────────────────────────────────────────
-const EXPORT_COLS = [
-  ['full_name','Name'], ['work_email','Email'], ['whatsapp_number','WhatsApp'],
-  ['country_of_residence','Country'], ['departure_city','Departure city'],
-  ['business_unit','Business unit'], ['job_title','Job title'],
-  ['office_location','Office location'], ['office_country','Office country'],
-  ['arrival_datetime','Arrival'], ['departure_datetime','Departure'],
-  ['airport_transfer_arrival','Transfer arrival'], ['airport_transfer_departure','Transfer departure'],
-  ['yellow_fever_certificate_required','Yellow fever'], ['visa_status','Visa'],
-  ['dietary_restrictions','Dietary restrictions'], ['food_allergies','Food allergies'],
-  ['dietary_notes','Dietary notes'], ['medical_conditions','Medical conditions'],
-  ['medications','Medications'], ['carries_epipen','EpiPen'],
-  ['emergency_contact_name','Emergency name'], ['emergency_contact_relationship','Emergency relation'],
-  ['emergency_contact_phone','Emergency phone'], ['travel_insurance_confirmed','Insurance'],
-  ['mobility_requirements','Mobility'], ['accessibility_requirements','Accessibility'],
-  ['preferred_topics','Preferred topics'], ['tshirt_size','T-shirt'],
-  ['privacy_policy_accepted','Privacy accepted'], ['terms_accepted','Terms accepted'],
-  ['created_at','Submitted'],
+const EXPORT_COLS=[
+  ['full_name','Name'],['work_email','Email'],['whatsapp_number','WhatsApp'],
+  ['country_of_residence','Country'],['departure_city','Departure city'],
+  ['business_unit','Business unit'],['job_title','Job title'],
+  ['office_location','Office location'],['office_country','Office country'],
+  ['arrival_datetime','Arrival'],['departure_datetime','Departure'],
+  ['airport_transfer_arrival','Transfer arrival'],['airport_transfer_departure','Transfer departure'],
+  ['yellow_fever_certificate_required','Yellow fever'],['visa_status','Visa'],
+  ['dietary_restrictions','Dietary'],['food_allergies','Allergies'],['dietary_notes','Dietary notes'],
+  ['medical_conditions','Medical'],['medications','Medications'],['carries_epipen','EpiPen'],
+  ['emergency_contact_name','Emergency name'],['emergency_contact_relationship','Emergency relation'],
+  ['emergency_contact_phone','Emergency phone'],['travel_insurance_confirmed','Insurance'],
+  ['mobility_requirements','Mobility'],['accessibility_requirements','Accessibility'],
+  ['preferred_topics','Topics'],['tshirt_size','T-shirt'],
+  ['privacy_policy_accepted','Privacy accepted'],['terms_accepted','Terms accepted'],['created_at','Submitted'],
 ];
 
-function getVisibleRows() {
-  // Export what's currently in the table (respects slicers)
-  const trs = document.querySelectorAll('#drilldown-tbody tr');
-  // Re-filter from allData based on current slicer state
-  const country  = document.getElementById('sl-country').value;
-  const unit     = document.getElementById('sl-unit').value;
-  const visa     = document.getElementById('sl-visa').value;
-  const tArr     = document.getElementById('sl-transfer-arr').value;
-  const tDep     = document.getElementById('sl-transfer-dep').value;
-  const insurance= document.getElementById('sl-insurance').value;
-  const epipen   = document.getElementById('sl-epipen').value;
-  const dietary  = document.getElementById('sl-dietary').value;
-  const search   = document.getElementById('sl-search').value.toLowerCase().trim();
-
-  let filtered = allData;
-  if (activeFilter) filtered = filtered.filter(r => {
-    const v = r[activeFilter.field] ?? '';
-    return activeFilter.rawVal !== undefined ? String(v) === activeFilter.rawVal : (r[activeFilter.field] || 'Not specified') === activeFilter.label;
-  });
-  if (country)   filtered = filtered.filter(r => r.country_of_residence === country);
-  if (unit)      filtered = filtered.filter(r => r.business_unit === unit);
-  if (visa)      filtered = filtered.filter(r => (r.visa_status ?? '') === visa);
-  if (tArr)      filtered = filtered.filter(r => (r.airport_transfer_arrival ?? '') === tArr);
-  if (tDep)      filtered = filtered.filter(r => (r.airport_transfer_departure ?? '') === tDep);
-  if (insurance) filtered = filtered.filter(r => (r.travel_insurance_confirmed ?? '') === insurance);
-  if (epipen)    filtered = filtered.filter(r => String(r.carries_epipen ?? 'false') === epipen);
-  if (dietary === 'has')  filtered = filtered.filter(r => r.dietary_restrictions && r.dietary_restrictions.toLowerCase() !== 'none');
-  if (dietary === 'none') filtered = filtered.filter(r => !r.dietary_restrictions || r.dietary_restrictions.toLowerCase() === 'none');
-  if (search)    filtered = filtered.filter(r =>
-    (r.full_name || '').toLowerCase().includes(search) ||
-    (r.work_email || '').toLowerCase().includes(search)
-  );
-  return filtered;
+function getFiltered() {
+  const country=document.getElementById('sl-country').value;
+  const unit=document.getElementById('sl-unit').value;
+  const visa=document.getElementById('sl-visa').value;
+  const tArr=document.getElementById('sl-transfer-arr').value;
+  const tDep=document.getElementById('sl-transfer-dep').value;
+  const insurance=document.getElementById('sl-insurance').value;
+  const epipen=document.getElementById('sl-epipen').value;
+  const dietary=document.getElementById('sl-dietary').value;
+  const search=document.getElementById('sl-search').value.toLowerCase().trim();
+  let f=allData;
+  if(activeFilter){
+    if(activeFilter.field==='_date_') f=f.filter(r=>r.created_at&&r.created_at.slice(0,10)===activeFilter.rawVal);
+    else f=f.filter(r=>{const v=r[activeFilter.field]??''; return activeFilter.rawVal!==undefined?String(v)===activeFilter.rawVal:(r[activeFilter.field]||'Not specified')===activeFilter.label;});
+  }
+  if(country)   f=f.filter(r=>r.country_of_residence===country);
+  if(unit)      f=f.filter(r=>r.business_unit===unit);
+  if(visa)      f=f.filter(r=>(r.visa_status??'')===visa);
+  if(tArr)      f=f.filter(r=>(r.airport_transfer_arrival??'')===tArr);
+  if(tDep)      f=f.filter(r=>(r.airport_transfer_departure??'')===tDep);
+  if(insurance) f=f.filter(r=>(r.travel_insurance_confirmed??'')===insurance);
+  if(epipen)    f=f.filter(r=>String(r.carries_epipen??'false')===epipen);
+  if(dietary==='has')  f=f.filter(r=>r.dietary_restrictions&&r.dietary_restrictions.toLowerCase()!=='none');
+  if(dietary==='none') f=f.filter(r=>!r.dietary_restrictions||r.dietary_restrictions.toLowerCase()==='none');
+  if(search)    f=f.filter(r=>(r.full_name||'').toLowerCase().includes(search)||(r.work_email||'').toLowerCase().includes(search));
+  return f;
 }
 
 function exportCSV() {
-  const rows = getVisibleRows();
-  if (!rows.length) { alert('No data to export.'); return; }
-  const header = EXPORT_COLS.map(([,l]) => `"${l}"`).join(',');
-  const body = rows.map(r =>
-    EXPORT_COLS.map(([k]) => {
-      const v = r[k] ?? '';
-      return `"${String(v).replace(/"/g,'""')}"`;
-    }).join(',')
-  );
-  const csv  = [header, ...body].join('\r\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = 'dgc2026-delegates.csv'; a.click();
-  URL.revokeObjectURL(url);
+  const rows=getFiltered(); if(!rows.length){alert('No data to export.');return;}
+  const header=EXPORT_COLS.map(([,l])=>`"${l}"`).join(',');
+  const body=rows.map(r=>EXPORT_COLS.map(([k])=>`"${String(r[k]??'').replace(/"/g,'""')}"`).join(','));
+  const blob=new Blob([[header,...body].join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='dgc2026-delegates.csv'; a.click();
 }
 
 function exportXLSX() {
-  const rows = getVisibleRows();
-  if (!rows.length) { alert('No data to export.'); return; }
-
-  // Build a simple XML-based XLSX (SpreadsheetML) — no library needed
-  const headers = EXPORT_COLS.map(([,l]) => l);
-  const xmlRows = [headers, ...rows.map(r => EXPORT_COLS.map(([k]) => String(r[k] ?? '')))];
-
-  const escape = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-
-  const rowsXml = xmlRows.map(row =>
-    `<Row>${row.map(cell => `<Cell><Data ss:Type="String">${escape(cell)}</Data></Cell>`).join('')}</Row>`
-  ).join('');
-
-  const xml = `<?xml version="1.0"?>
-<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
-  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
-  <Worksheet ss:Name="Delegates">
-    <Table>${rowsXml}</Table>
-  </Worksheet>
-</Workbook>`;
-
-  const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = 'dgc2026-delegates.xls'; a.click();
-  URL.revokeObjectURL(url);
+  const rows=getFiltered(); if(!rows.length){alert('No data to export.');return;}
+  const e=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const headers=EXPORT_COLS.map(([,l])=>l);
+  const xmlRows=[headers,...rows.map(r=>EXPORT_COLS.map(([k])=>String(r[k]??'')))];
+  const rowsXml=xmlRows.map(row=>`<Row>${row.map(c=>`<Cell><Data ss:Type="String">${e(c)}</Data></Cell>`).join('')}</Row>`).join('');
+  const xml=`<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Delegates"><Table>${rowsXml}</Table></Worksheet></Workbook>`;
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([xml],{type:'application/vnd.ms-excel;charset=utf-8;'})); a.download='dgc2026-delegates.xls'; a.click();
 }
 
-
-
-function showDrilldown(filtered, title) {
-  document.getElementById('drilldown-wrap').style.display = 'block';
-  document.getElementById('drilldown-title').textContent = title;
-  document.getElementById('drilldown-count').textContent =
-    `${filtered.length} ${filtered.length === 1 ? 'delegate' : 'delegates'}`;
-
-  const tbody = document.getElementById('drilldown-tbody');
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="18" style="text-align:center;color:var(--text-3);padding:2rem">No delegates match this filter.</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = filtered.map(r => {
-    const arr = r.arrival_datetime ? new Date(r.arrival_datetime).toLocaleDateString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '—';
-    const dep = r.departure_datetime ? new Date(r.departure_datetime).toLocaleDateString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '—';
-    const sub = r.created_at ? new Date(r.created_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) : '—';
-
-    return `<tr>
-      <td title="${esc(r.full_name)}">${esc(r.full_name || '—')}</td>
-      <td title="${esc(r.work_email)}">${esc(r.work_email || '—')}</td>
-      <td>${esc(r.country_of_residence || '—')}</td>
-      <td>${esc(r.departure_city || '—')}</td>
-      <td>${esc(r.business_unit || '—')}</td>
-      <td>${esc(r.job_title || '—')}</td>
-      <td>${arr}</td>
-      <td>${dep}</td>
-      <td>${yesNoTag(r.airport_transfer_arrival)}</td>
-      <td>${yesNoTag(r.airport_transfer_departure)}</td>
-      <td>${esc(r.dietary_restrictions || '—')}</td>
-      <td>${esc(r.food_allergies || '—')}</td>
-      <td>${medTag(r.medical_conditions)}</td>
-      <td>${r.carries_epipen ? '<span class="tag-warn">Yes</span>' : '<span class="tag-no">No</span>'}</td>
-      <td>${esc(r.tshirt_size || '—')}</td>
-      <td>${insuranceTag(r.travel_insurance_confirmed)}</td>
-      <td>${esc(r.visa_status || '—')}</td>
-      <td>${sub}</td>
-    </tr>`;
-  }).join('');
-
-  setTimeout(() => {
-    document.getElementById('drilldown-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 80);
-}
-
-function clearDrilldown() {
-  document.getElementById('drilldown-wrap').style.display = 'none';
-  document.getElementById('drilldown-tbody').innerHTML = '';
-}
-
-function yesNoTag(val) {
-  if (val === 'yes') return '<span class="tag-yes">Yes</span>';
-  if (val === 'no')  return '<span class="tag-no">No</span>';
-  return `<span class="tag-no">${esc(val || '—')}</span>`;
-}
-
-function medTag(val) {
-  if (!val || val.toLowerCase() === 'none') return '<span class="tag-no">None</span>';
-  return `<span class="tag-warn" title="${esc(val)}">Yes</span>`;
-}
-
-function insuranceTag(val) {
-  if (val === 'yes') return '<span class="tag-yes">Confirmed</span>';
-  if (val === 'arranging') return '<span class="tag-warn">Arranging</span>';
-  if (val === 'no') return '<span class="tag-no">No</span>';
-  return '—';
-}
-
-function esc(str) {
-  return String(str || '')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// Wire click to chart — call after each chart is created
-function addChartClick(chartId, dataKey, labelMap) {
-  const canvas = document.getElementById(chartId);
-  canvas.onclick = function(evt) {
-    const chart = charts[chartId];
-    if (!chart) return;
-    const points = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
-    if (!points.length) return;
-    const label = chart.data.labels[points[0].index];
-    let rawVal;
-    if (labelMap) {
-      rawVal = Object.entries(labelMap).find(([,v]) => v === label)?.[0];
-    }
-    showDrilldown(label, label, dataKey, rawVal);
-  };
-  canvas.style.cursor = 'pointer';
-}
-
-// Timeline click
-function addTimelineClick() {
-  document.getElementById('timeline').addEventListener('click', e => {
-    const row = e.target.closest('.timeline-row');
-    if (!row) return;
-    const dateEl = row.querySelector('.timeline-date');
-    if (!dateEl || !dateEl.dataset.iso) return;
-    const iso = dateEl.dataset.iso;
-    showDrilldown(`Registered on ${dateEl.textContent.trim()}`, `Registered on ${dateEl.textContent.trim()}`, '_date_', iso);
-    // Override: filter by date directly
-    activeFilter = { field: '_date_', rawVal: iso, label: iso };
-    applySlicers();
-  });
-}
-
-// Map tags click
-function addMapClick() {
-  document.getElementById('map-countries').addEventListener('click', e => {
-    const tag = e.target.closest('.map-country-tag');
-    if (!tag) return;
-    const country = tag.dataset.country;
-    if (!country) return;
-    document.getElementById('sl-country').value = country;
-    activeFilter = null;
-    applySlicers();
-    document.getElementById('drilldown-title').textContent = country;
-  });
-}
-
-
-function count(data, key) {
-  const out = {};
-  data.forEach(r => {
-    const v = r[key] || 'Not specified';
-    out[v] = (out[v] || 0) + 1;
-  });
-  return Object.fromEntries(Object.entries(out).sort((a, b) => b[1] - a[1]));
-}
-
-function countMapped(data, key, map) {
-  const out = {};
-  data.forEach(r => {
-    const raw = r[key] ?? '';
-    const label = map[raw] || map[''] || raw || 'Not specified';
-    out[label] = (out[label] || 0) + 1;
-  });
-  return out;
-}
-
-function unique(data, key) {
-  return [...new Set(data.map(r => r[key]).filter(Boolean))];
-}
-
-function setText(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = val;
-}
-
-function formatDate(iso) {
-  const d = new Date(iso + 'T00:00:00');
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-}
+// ── UTILS ─────────────────────────────────────────────────
+function count(data,key){const o={};data.forEach(r=>{const v=r[key]||'Not specified';o[v]=(o[v]||0)+1;});return Object.fromEntries(Object.entries(o).sort((a,b)=>b[1]-a[1]));}
+function countMapped(data,key,map){const o={};data.forEach(r=>{const raw=r[key]??'';const label=map[raw]||map['']||raw||'Not specified';o[label]=(o[label]||0)+1;});return o;}
+function unique(data,key){return[...new Set(data.map(r=>r[key]).filter(Boolean))];}
+function setText(id,val){const el=document.getElementById(id);if(el)el.textContent=val;}
+function fmtDate(iso){return new Date(iso+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short'});}
+function fmtDt(iso){if(!iso)return'—';return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+function trunc(val,n=40){if(!val)return'—';return val.length>n?val.slice(0,n)+'…':val;}
+function esc(str){return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function yesNoTag(val){if(val==='yes')return'<span class="tag-yes">Yes</span>';if(val==='no')return'<span class="tag-no">No</span>';return`<span class="tag-no">${esc(val||'—')}</span>`;}
+function medTag(val){if(!val||val.toLowerCase()==='none')return'<span class="tag-no">None</span>';return`<span class="tag-warn" title="${esc(val)}">Yes</span>`;}
+function insuranceTag(val){if(val==='yes')return'<span class="tag-yes">Confirmed</span>';if(val==='arranging')return'<span class="tag-warn">Arranging</span>';if(val==='no')return'<span class="tag-no">No</span>';return'—';}
 </script>
 </body>
 </html>
