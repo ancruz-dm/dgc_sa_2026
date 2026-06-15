@@ -673,18 +673,25 @@ const AdminAuth = {
       body: JSON.stringify({ email, password }),
     });
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error_description || data.msg || 'Sign in failed.');
-    return data.access_token;
+    if (!response.ok) {
+      throw new Error(data.error_description || data.message || data.msg || 'Invalid email or password.');
+    }
+    // Supabase v2 returns access_token at root; v1 may nest under session
+    const token = data.access_token || data?.session?.access_token;
+    if (!token) throw new Error('Authentication succeeded but no token was returned. Contact your administrator.');
+    return token;
   },
 
   async signOut(token) {
-    await fetch(CONFIG.SUPABASE_URL + '/auth/v1/logout', {
-      method: 'POST',
-      headers: {
-        'apikey': CONFIG.SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + token,
-      },
-    });
+    try {
+      await fetch(CONFIG.SUPABASE_URL + '/auth/v1/logout', {
+        method: 'POST',
+        headers: {
+          'apikey': CONFIG.SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + token,
+        },
+      });
+    } catch { /* silent — session already cleaned up locally */ }
   },
 };
 
