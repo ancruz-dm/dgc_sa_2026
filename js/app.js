@@ -76,10 +76,10 @@ const RegistrationService = {
         },
         body: JSON.stringify({}),
       });
-      if (!response.ok) return { confirmed: 0, countries: 0, teams: 0 };
+      if (!response.ok) return { confirmed: 0, countries: 0 };
       return await response.json();
     } catch {
-      return { confirmed: 0, countries: 0, teams: 0 };
+      return { confirmed: 0, countries: 0 };
     }
   },
 
