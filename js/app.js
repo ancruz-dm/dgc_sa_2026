@@ -224,13 +224,21 @@ privacy_policy_accepted:
    ============================================================ */
 const Validator = {
   rules: {
-    'f-fullname':      { required: true,  label: 'Full name' },
-    'f-email':         { required: true,  label: 'Work email', pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
-    'f-jobtitle':      { required: true,  label: 'Job title' },
-    'f-businessunit':  { required: true,  label: 'Business unit' },
+    'f-fullname':         { required: true, label: 'Full name' },
+    'f-email':            { required: true, label: 'Work email', pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
+    'f-jobtitle':         { required: true, label: 'Job title' },
+    'f-businessunit':     { required: true, label: 'Business unit' },
     'f-residencecountry': { required: true, label: 'Country of residence' },
-    'f-emergencyname': { required: true,  label: 'Emergency contact name' },
-    'f-emergencyphone':{ required: true,  label: 'Emergency contact phone' },
+    'f-departurecity':    { required: true, label: 'Departure city' },
+    'f-arrivaldate':      { required: true, label: 'Arrival date' },
+    'f-arrivaltime':      { required: true, label: 'Arrival time' },
+    'f-departuredate':    { required: true, label: 'Departure date' },
+    'f-departuretime':    { required: true, label: 'Departure time' },
+    'f-transferarrival':  { required: true, label: 'Arrival transfer' },
+    'f-transferdeparture':{ required: true, label: 'Departure transfer' },
+    'f-emergencyname':    { required: true, label: 'Emergency contact name' },
+    'f-emergencyrelation':{ required: true, label: 'Relationship' },
+    'f-emergencyphone':   { required: true, label: 'Emergency contact phone', pattern: /^[+\d\s\-().]{7,20}$/ },
   },
 
   setFieldError(field, errId, msg) {
@@ -267,6 +275,27 @@ const Validator = {
       this.setFieldError(field, errId, error);
       if (error) valid = false;
     });
+
+    // Step 6: required radio groups — EpiPen and travel insurance
+    if (step === 6) {
+      const epipen = document.querySelector('input[name="carriesEpipen"]:checked');
+      const errEpipen = document.getElementById('err-epipen');
+      if (!epipen) {
+        if (errEpipen) errEpipen.textContent = 'Please indicate whether you carry an EpiPen.';
+        valid = false;
+      } else {
+        if (errEpipen) errEpipen.textContent = '';
+      }
+
+      const insurance = document.querySelector('input[name="travelInsurance"]:checked');
+      const errInsurance = document.getElementById('err-travelinsurance');
+      if (!insurance) {
+        if (errInsurance) errInsurance.textContent = 'Please confirm your travel insurance status.';
+        valid = false;
+      } else {
+        if (errInsurance) errInsurance.textContent = '';
+      }
+    }
 
     // Step 9: t-shirt size
     if (step === 9) {
