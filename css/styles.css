@@ -496,6 +496,15 @@ section {
   margin-bottom: 1.5rem;
 }
 
+.hero-event-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 0.75rem;
+}
+
 .eyebrow-dot {
   width: 6px;
   height: 6px;
