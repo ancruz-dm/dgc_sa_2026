@@ -1935,7 +1935,7 @@ footer {
   max-width: 160px;
   display: block;
   object-fit: contain;
-  opacity: 1;
+  opacity: 0.9;
 }
 
 .footer-logo-fallback {
