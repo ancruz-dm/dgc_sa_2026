@@ -112,8 +112,6 @@
     .drilldown-count { margin-top: 0.65rem; font-size: 0.75rem; color: var(--text-3); }
     .btn-export { padding: 0.38rem 0.85rem; font-size: 0.76rem; font-weight: 600; background: var(--brand-light); color: var(--brand-dark); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-family: inherit; transition: background 0.15s; }
     .btn-export:hover { background: #d4edf5; }
-    .btn-export-xl { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9; }
-    .btn-export-xl:hover { background: #c8e6c9; }
     .btn-clear { padding: 0.38rem 0.85rem; font-size: 0.76rem; font-weight: 600; background: #fff3f3; color: #c0392b; border: 1px solid #fcc; border-radius: 6px; cursor: pointer; font-family: inherit; transition: background 0.15s; }
     .btn-clear:hover { background: #ffe0e0; }
 
@@ -295,7 +293,6 @@
         </div>
         <div class="drilldown-actions">
           <button class="btn-export" onclick="exportCSV()">↓ CSV</button>
-          <button class="btn-export btn-export-xl" onclick="exportXLSX()">↓ XLSX</button>
           <button class="btn-clear" onclick="clearDrilldown()">✕ Clear filters</button>
         </div>
       </div>
@@ -766,16 +763,6 @@ function exportCSV() {
   const body=rows.map(r=>EXPORT_COLS.map(([k])=>`"${String(r[k]??'').replace(/"/g,'""')}"`).join(','));
   const blob=new Blob([[header,...body].join('\r\n')],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='dgc2026-delegates.csv'; a.click();
-}
-
-function exportXLSX() {
-  const rows=getFiltered(); if(!rows.length){alert('No data to export.');return;}
-  const e=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const headers=EXPORT_COLS.map(([,l])=>l);
-  const xmlRows=[headers,...rows.map(r=>EXPORT_COLS.map(([k])=>String(r[k]??'')))];
-  const rowsXml=xmlRows.map(row=>`<Row>${row.map(c=>`<Cell><Data ss:Type="String">${e(c)}</Data></Cell>`).join('')}</Row>`).join('');
-  const xml=`<?xml version="1.0"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"><Worksheet ss:Name="Delegates"><Table>${rowsXml}</Table></Worksheet></Workbook>`;
-  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([xml],{type:'application/vnd.ms-excel;charset=utf-8;'})); a.download='dgc2026-delegates.xls'; a.click();
 }
 
 // ── UTILS ─────────────────────────────────────────────────
