@@ -847,7 +847,13 @@ In the meantime, here's what to expect across the six days.
             </div>
             <div class="form-group">
               <label class="form-label" for="f-officecountry">Office Country</label>
-              <input class="form-input" type="text" id="f-officecountry" name="officeCountry" placeholder="e.g. Australia, United Kingdom">
+              <div class="country-wrap" id="wrap-officecountry">
+                <input class="form-input" type="text" id="f-officecountry" name="officeCountry"
+                  placeholder="Type to search…" autocomplete="off" role="combobox"
+                  aria-expanded="false" aria-controls="list-officecountry" aria-autocomplete="list"
+                  oninput="countryFilter(this)" onfocus="countryFilter(this)" onblur="countryBlur(this)" onkeydown="countryKey(event,this)">
+                <ul class="country-list" id="list-officecountry" role="listbox" hidden></ul>
+              </div>
             </div>
           </div>
           <div class="form-nav">
@@ -869,7 +875,14 @@ In the meantime, here's what to expect across the six days.
           <div class="form-grid">
             <div class="form-group">
               <label class="form-label" for="f-residencecountry">Country of Residence <span class="required" aria-label="required">*</span></label>
-              <input class="form-input" type="text" id="f-residencecountry" name="countryOfResidence" placeholder="e.g. Australia" required>
+              <div class="country-wrap" id="wrap-residencecountry">
+                <input class="form-input" type="text" id="f-residencecountry" name="countryOfResidence"
+                  placeholder="Type to search…" autocomplete="off" role="combobox"
+                  aria-expanded="false" aria-controls="list-residencecountry" aria-autocomplete="list"
+                  oninput="countryFilter(this)" onfocus="countryFilter(this)" onblur="countryBlur(this)" onkeydown="countryKey(event,this)"
+                  required>
+                <ul class="country-list" id="list-residencecountry" role="listbox" hidden></ul>
+              </div>
               <span class="form-error" id="err-residencecountry" role="alert"></span>
             </div>
             <div class="form-group">
