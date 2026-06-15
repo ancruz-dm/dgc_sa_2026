@@ -674,7 +674,9 @@ const AdminAuth = {
     });
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.error_description || data.message || data.msg || 'Invalid email or password.');
+      const msg = data.error_description || data.message || data.msg || JSON.stringify(data);
+      console.error('[AdminAuth] Login failed:', response.status, msg);
+      throw new Error(msg || 'Invalid email or password.');
     }
     // Supabase v2 returns access_token at root; v1 may nest under session
     const token = data.access_token || data?.session?.access_token;
