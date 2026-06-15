@@ -813,7 +813,7 @@ In the meantime, here's what to expect across the six days.
             </div>
             <div class="form-group full">
               <label class="form-label" for="f-whatsapp">WhatsApp Number</label>
-              <input class="form-input" type="tel" id="f-whatsapp" name="whatsappNumber" placeholder="+1 555 000 0000" autocomplete="tel">
+              <input class="form-input" type="tel" id="f-whatsapp" name="whatsappNumber" placeholder="+1 555 000 0000" autocomplete="tel" inputmode="tel" pattern="[+\d\s\-().]{7,20}" oninput="this.value=this.value.replace(/[^\d\s+\-().]/g,'')">
               <span class="form-hint">Including country code. Used for event communications and logistics only.</span>
             </div>
           </div>
@@ -873,8 +873,9 @@ In the meantime, here's what to expect across the six days.
               <span class="form-error" id="err-residencecountry" role="alert"></span>
             </div>
             <div class="form-group">
-              <label class="form-label" for="f-departurecity">Departure City</label>
-              <input class="form-input" type="text" id="f-departurecity" name="departureCity" placeholder="e.g. Perth, London, Santiago">
+              <label class="form-label" for="f-departurecity">Departure City <span class="required" aria-label="required">*</span></label>
+              <input class="form-input" type="text" id="f-departurecity" name="departureCity" placeholder="e.g. Perth, London, Santiago" required>
+              <span class="form-error" id="err-departurecity" role="alert"></span>
             </div>
             <div class="form-group">
               <label class="form-label" for="f-visarequired">Will you require a visa to enter South Africa?</label>
@@ -897,7 +898,7 @@ In the meantime, here's what to expect across the six days.
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label" for="f-arrivaldate">Arrival Date</label>
+              <label class="form-label" for="f-arrivaldate">Arrival Date <span class="required" aria-label="required">*</span></label>
 <input
   class="form-input"
   type="date"
@@ -905,14 +906,17 @@ In the meantime, here's what to expect across the six days.
   name="arrivalDate"
   min="2026-11-01"
   max="2026-11-27"
-  value="2026-11-22">
+  value="2026-11-22"
+  required>
+              <span class="form-error" id="err-arrivaldate" role="alert"></span>
             </div>
             <div class="form-group">
-              <label class="form-label" for="f-arrivaltime">Arrival Time (local South Africa)</label>
-              <input class="form-input" type="time" id="f-arrivaltime" name="arrivalTime">
+              <label class="form-label" for="f-arrivaltime">Arrival Time (local South Africa) <span class="required" aria-label="required">*</span></label>
+              <input class="form-input" type="time" id="f-arrivaltime" name="arrivalTime" required>
+              <span class="form-error" id="err-arrivaltime" role="alert"></span>
             </div>
             <div class="form-group">
-              <label class="form-label" for="f-departuredate">Departure Date</label>
+              <label class="form-label" for="f-departuredate">Departure Date <span class="required" aria-label="required">*</span></label>
 <input
   class="form-input"
   type="date"
@@ -920,11 +924,14 @@ In the meantime, here's what to expect across the six days.
   name="departureDate"
   min="2026-11-22"
   max="2026-11-30"
-  value="2026-11-27">
+  value="2026-11-27"
+  required>
+              <span class="form-error" id="err-departuredate" role="alert"></span>
             </div>
             <div class="form-group">
-              <label class="form-label" for="f-departuretime">Departure Time (local South Africa)</label>
-              <input class="form-input" type="time" id="f-departuretime" name="departureTime">
+              <label class="form-label" for="f-departuretime">Departure Time (local South Africa) <span class="required" aria-label="required">*</span></label>
+              <input class="form-input" type="time" id="f-departuretime" name="departureTime" required>
+              <span class="form-error" id="err-departuretime" role="alert"></span>
             </div>
           </div>
           <div class="form-nav">
@@ -945,22 +952,24 @@ In the meantime, here's what to expect across the six days.
           <p class="form-step-desc">Let us know if you need transfers to and from the airport.</p>
           <div class="form-grid">
             <div class="form-group full">
-              <label class="form-label" for="f-transferarrival">Arrival Transfer Required</label>
-              <select class="form-select" id="f-transferarrival" name="airportTransferArrival">
+              <label class="form-label" for="f-transferarrival">Arrival Transfer Required <span class="required" aria-label="required">*</span></label>
+              <select class="form-select" id="f-transferarrival" name="airportTransferArrival" required>
                 <option value="">Select…</option>
                 <option value="yes">Yes — I need a transfer from the airport on arrival</option>
                 <option value="no">No — I will arrange my own transport</option>
                 <option value="unsure">Unsure — please contact me</option>
               </select>
+              <span class="form-error" id="err-transferarrival" role="alert"></span>
             </div>
             <div class="form-group full">
-              <label class="form-label" for="f-transferdeparture">Departure Transfer Required</label>
-              <select class="form-select" id="f-transferdeparture" name="airportTransferDeparture">
+              <label class="form-label" for="f-transferdeparture">Departure Transfer Required <span class="required" aria-label="required">*</span></label>
+              <select class="form-select" id="f-transferdeparture" name="airportTransferDeparture" required>
                 <option value="">Select…</option>
                 <option value="yes">Yes — I need a transfer to the airport on departure</option>
                 <option value="no">No — I will arrange my own transport</option>
                 <option value="unsure">Unsure — please contact me</option>
               </select>
+              <span class="form-error" id="err-transferdeparture" role="alert"></span>
             </div>
           </div>
           <div class="form-nav">
@@ -1020,7 +1029,7 @@ In the meantime, here's what to expect across the six days.
               <input class="form-input" type="text" id="f-medications" name="medications" placeholder="Any medications you carry regularly — or 'None'">
             </div>
             <div class="form-group full">
-              <label class="form-label">Do you carry an EpiPen?</label>
+              <label class="form-label">Do you carry an EpiPen? <span class="required" aria-label="required">*</span></label>
               <div class="radio-group" role="radiogroup">
                 <label class="radio-label">
                   <input type="radio" name="carriesEpipen" value="yes"> Yes
@@ -1029,6 +1038,7 @@ In the meantime, here's what to expect across the six days.
                   <input type="radio" name="carriesEpipen" value="no"> No
                 </label>
               </div>
+              <span class="form-error" id="err-epipen" role="alert"></span>
             </div>
             <div class="form-group">
               <label class="form-label" for="f-emergencyname">Emergency Contact Name <span class="required" aria-label="required">*</span></label>
@@ -1036,16 +1046,17 @@ In the meantime, here's what to expect across the six days.
               <span class="form-error" id="err-emergencyname" role="alert"></span>
             </div>
             <div class="form-group">
-              <label class="form-label" for="f-emergencyrelation">Relationship</label>
-              <input class="form-input" type="text" id="f-emergencyrelation" name="emergencyContactRelationship" placeholder="e.g. Spouse, Parent, Sibling">
+              <label class="form-label" for="f-emergencyrelation">Relationship <span class="required" aria-label="required">*</span></label>
+              <input class="form-input" type="text" id="f-emergencyrelation" name="emergencyContactRelationship" placeholder="e.g. Spouse, Parent, Sibling" required>
+              <span class="form-error" id="err-emergencyrelation" role="alert"></span>
             </div>
             <div class="form-group full">
               <label class="form-label" for="f-emergencyphone">Emergency Contact Phone <span class="required" aria-label="required">*</span></label>
-              <input class="form-input" type="tel" id="f-emergencyphone" name="emergencyContactPhone" placeholder="+1 555 000 0000 (include country code)" required>
+              <input class="form-input" type="tel" id="f-emergencyphone" name="emergencyContactPhone" placeholder="+1 555 000 0000 (include country code)" autocomplete="tel" inputmode="tel" pattern="[+\d\s\-().]{7,20}" oninput="this.value=this.value.replace(/[^\d\s+\-().]/g,'')" required>
               <span class="form-error" id="err-emergencyphone" role="alert"></span>
             </div>
             <div class="form-group full">
-              <label class="form-label">Travel Insurance Confirmed?</label>
+              <label class="form-label">Travel Insurance Confirmed? <span class="required" aria-label="required">*</span></label>
               <div class="radio-group" role="radiogroup">
                 <label class="radio-label">
                   <input type="radio" name="travelInsurance" value="yes"> Yes — I have travel insurance for this trip
@@ -1058,6 +1069,7 @@ In the meantime, here's what to expect across the six days.
                 </label>
               </div>
               <span class="form-hint" style="margin-top:0.4rem;display:block">Travel insurance is strongly recommended for all delegates travelling internationally.</span>
+              <span class="form-error" id="err-travelinsurance" role="alert"></span>
             </div>
           </div>
           <div class="form-nav">
