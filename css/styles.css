@@ -1991,13 +1991,12 @@ footer {
 
 /* Admin login screen */
 .admin-login-wrap {
-  position: fixed;
-  inset: 0;
-  background: var(--bg-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
+  min-height: 100vh;
+  background: var(--bg-subtle);
+  padding: 2rem;
 }
 
 .admin-login-card {
