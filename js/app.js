@@ -689,6 +689,7 @@ const AdminAuth = {
 };
 
 let adminAccessToken = null;
+let adminRegistrations = [];
 
 async function adminLogin() {
   const email    = document.getElementById('admin-email')?.value.trim();
