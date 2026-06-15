@@ -1989,15 +1989,19 @@ footer {
 
 .admin-panel[hidden] { display: none; }
 
-/* Admin login screen */
+/* Admin login screen — covers the entire panel */
 .admin-login-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
   background: var(--bg-subtle);
   padding: 2rem;
 }
+
+.admin-login-wrap[hidden] { display: none; }
 
 .admin-login-card {
   background: var(--bg-primary);
