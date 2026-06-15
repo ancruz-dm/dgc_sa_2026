@@ -216,7 +216,7 @@ const Validator = {
     'f-email':            { required: true, label: 'Work email', pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
     'f-jobtitle':         { required: true, label: 'Job title' },
     'f-businessunit':     { required: true, label: 'Business unit' },
-    'f-residencecountry': { required: true, label: 'Country of residence' },
+    'f-residencecountry': { required: true, label: 'Country of residence', validate: v => COUNTRIES.includes(v) || 'Please select a country from the list.' },
     'f-departurecity':    { required: true, label: 'Departure city' },
     'f-arrivaldate':      { required: true, label: 'Arrival date' },
     'f-arrivaltime':      { required: true, label: 'Arrival time' },
@@ -258,6 +258,9 @@ const Validator = {
         error = (rule ? rule.label : field.name) + ' is required.';
       } else if (rule && rule.pattern && !rule.pattern.test(value)) {
         error = 'Please enter a valid ' + rule.label.toLowerCase() + '.';
+      } else if (rule && rule.validate) {
+        const result = rule.validate(value);
+        if (result !== true) error = result;
       }
 
       this.setFieldError(field, errId, error);
@@ -949,6 +952,128 @@ document.addEventListener('keydown', e => {
     if (login && !login.hidden) adminLogin();
   }
 });
+
+/* ============================================================
+   COUNTRY AUTOCOMPLETE
+   ============================================================ */
+const COUNTRIES = [
+  'Afghanistan','Albania','Algeria','Andorra','Angola','Antigua and Barbuda','Argentina','Armenia',
+  'Australia','Austria','Azerbaijan','Bahamas','Bahrain','Bangladesh','Barbados','Belarus','Belgium',
+  'Belize','Benin','Bhutan','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','Brunei',
+  'Bulgaria','Burkina Faso','Burundi','Cabo Verde','Cambodia','Cameroon','Canada',
+  'Central African Republic','Chad','Chile','China','Colombia','Comoros','Congo',
+  'Democratic Republic of the Congo','Costa Rica','Croatia','Cuba','Cyprus','Czech Republic',
+  'Denmark','Djibouti','Dominica','Dominican Republic','Ecuador','Egypt','El Salvador',
+  'Equatorial Guinea','Eritrea','Estonia','Eswatini','Ethiopia','Fiji','Finland','France','Gabon',
+  'Gambia','Georgia','Germany','Ghana','Greece','Grenada','Guatemala','Guinea','Guinea-Bissau',
+  'Guyana','Haiti','Honduras','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland',
+  'Israel','Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kiribati','Kuwait','Kyrgyzstan',
+  'Laos','Latvia','Lebanon','Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg',
+  'Madagascar','Malawi','Malaysia','Maldives','Mali','Malta','Marshall Islands','Mauritania',
+  'Mauritius','Mexico','Micronesia','Moldova','Monaco','Mongolia','Montenegro','Morocco',
+  'Mozambique','Myanmar','Namibia','Nauru','Nepal','Netherlands','New Zealand','Nicaragua','Niger',
+  'Nigeria','North Korea','North Macedonia','Norway','Oman','Pakistan','Palau','Palestine','Panama',
+  'Papua New Guinea','Paraguay','Peru','Philippines','Poland','Portugal','Qatar','Romania','Russia',
+  'Rwanda','Saint Kitts and Nevis','Saint Lucia','Saint Vincent and the Grenadines','Samoa',
+  'San Marino','Sao Tome and Principe','Saudi Arabia','Senegal','Serbia','Seychelles',
+  'Sierra Leone','Singapore','Slovakia','Slovenia','Solomon Islands','Somalia','South Africa',
+  'South Korea','South Sudan','Spain','Sri Lanka','Sudan','Suriname','Sweden','Switzerland',
+  'Syria','Taiwan','Tajikistan','Tanzania','Thailand','Timor-Leste','Togo','Tonga',
+  'Trinidad and Tobago','Tunisia','Turkey','Turkmenistan','Tuvalu','Uganda','Ukraine',
+  'United Arab Emirates','United Kingdom','United States','Uruguay','Uzbekistan','Vanuatu',
+  'Vatican City','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe',
+];
+
+let countryActiveIndex = -1;
+
+function countryFilter(input) {
+  const listId  = input.getAttribute('aria-controls');
+  const list    = document.getElementById(listId);
+  if (!list) return;
+
+  const query = input.value.trim().toLowerCase();
+  const matches = query.length === 0
+    ? COUNTRIES
+    : COUNTRIES.filter(c => c.toLowerCase().includes(query));
+
+  countryActiveIndex = -1;
+
+  if (matches.length === 0) {
+    list.innerHTML = '<li class="no-results">No countries found</li>';
+  } else {
+    list.innerHTML = matches.map(c =>
+      `<li role="option" aria-selected="false" onmousedown="countrySelect(event,'${input.id}','${c}')">${c}</li>`
+    ).join('');
+  }
+
+  list.removeAttribute('hidden');
+  input.setAttribute('aria-expanded', 'true');
+}
+
+function countrySelect(event, inputId, value) {
+  event.preventDefault();
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  input.value = value;
+  const listId = input.getAttribute('aria-controls');
+  const list   = document.getElementById(listId);
+  if (list) { list.setAttribute('hidden', ''); }
+  input.setAttribute('aria-expanded', 'false');
+  // Trigger inline validation clear
+  input.classList.remove('invalid');
+  const errEl = document.getElementById(input.id.replace('f-', 'err-'));
+  if (errEl) errEl.textContent = '';
+}
+
+function countryBlur(input) {
+  // Small delay so mousedown on list item fires first
+  setTimeout(() => {
+    const listId = input.getAttribute('aria-controls');
+    const list   = document.getElementById(listId);
+    if (list) { list.setAttribute('hidden', ''); }
+    input.setAttribute('aria-expanded', 'false');
+    countryActiveIndex = -1;
+
+    // If typed value isn't a valid country, clear it
+    const val = input.value.trim();
+    if (val && !COUNTRIES.includes(val)) {
+      input.value = '';
+    }
+  }, 150);
+}
+
+function countryKey(event, input) {
+  const listId = input.getAttribute('aria-controls');
+  const list   = document.getElementById(listId);
+  if (!list || list.hidden) return;
+
+  const items = list.querySelectorAll('li:not(.no-results)');
+  if (!items.length) return;
+
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    countryActiveIndex = Math.min(countryActiveIndex + 1, items.length - 1);
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    countryActiveIndex = Math.max(countryActiveIndex - 1, 0);
+  } else if (event.key === 'Enter' && countryActiveIndex >= 0) {
+    event.preventDefault();
+    countrySelect(event, input.id, items[countryActiveIndex].textContent);
+    return;
+  } else if (event.key === 'Escape') {
+    list.setAttribute('hidden', '');
+    input.setAttribute('aria-expanded', 'false');
+    return;
+  }
+
+  items.forEach((item, i) => {
+    item.setAttribute('aria-selected', i === countryActiveIndex ? 'true' : 'false');
+  });
+
+  if (countryActiveIndex >= 0) {
+    items[countryActiveIndex].scrollIntoView({ block: 'nearest' });
+  }
+}
 
 /* ============================================================
    INIT
