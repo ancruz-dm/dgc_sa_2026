@@ -497,8 +497,8 @@ function openFormForNewUser(invitee) {
 
 /* ============================================================
    RESUME FLIGHT DETAILS — returning user
-   Shows Step 3 but hides everything already submitted.
-   Only the flight dates/times and transfers are shown.
+   Shows Step 3 but hides the already-submitted travel fields.
+   Only flight dates/times and transfers are visible.
    ============================================================ */
 function resumeFlightDetails() {
   document.getElementById('email-gate').hidden    = true;
@@ -512,31 +512,19 @@ function resumeFlightDetails() {
   const step3 = document.getElementById('form-step-3');
   if (step3) step3.hidden = false;
 
-  // Hide the general travel fields — already submitted on first registration
-  // Only show the flight-fields block (dates, times, transfers)
-  const fieldsToHide = [
-    'flight-booked-group',       // "Do you have flights booked?" radio
-    'wrap-residencecountry',     // country of residence
-    'f-departurecity',           // departure city
-    'f-visarequired',            // visa select
-    'f-yellowfever',             // yellow fever select
-  ];
-  fieldsToHide.forEach(id => {
-    // Hide the closest form-group wrapper so label + error also disappear
+  // Hide the two grids that contain already-submitted fields
+  const toggleGrid  = document.getElementById('travel-toggle-grid');
+  const travelGrid  = document.getElementById('travel-fields-grid');
+  if (toggleGrid) toggleGrid.hidden = true;
+  if (travelGrid) travelGrid.hidden = true;
+
+  // Also remove required from the now-hidden fields so validation doesn't block
+  ['f-residencecountry', 'f-departurecity'].forEach(id => {
     const el = document.getElementById(id);
-    if (!el) return;
-    const group = el.closest('.form-group') || el.closest('[role="radiogroup"]')?.closest('.form-group');
-    if (group) group.hidden = true;
+    if (el) el.removeAttribute('required');
   });
 
-  // Also hide the flight booked radio label/group directly
-  const flightBookedGroup = document.getElementById('flight-booked-group');
-  if (flightBookedGroup) {
-    const wrapper = flightBookedGroup.closest('.form-group');
-    if (wrapper) wrapper.hidden = true;
-  }
-
-  // Show flight-fields block and make all its fields required
+  // Show flight-fields block and make all its inputs required
   const flightFields = document.getElementById('flight-fields');
   if (flightFields) {
     flightFields.hidden = false;
