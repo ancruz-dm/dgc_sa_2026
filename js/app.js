@@ -513,10 +513,11 @@ function resumeFlightDetails() {
   if (step3) step3.hidden = false;
 
   // Hide the two grids that contain already-submitted fields
-  const toggleGrid  = document.getElementById('travel-toggle-grid');
-  const travelGrid  = document.getElementById('travel-fields-grid');
-  if (toggleGrid) toggleGrid.hidden = true;
-  if (travelGrid) travelGrid.hidden = true;
+  // Must use style.display not the hidden attribute — CSS grid overrides hidden
+  const toggleGrid = document.getElementById('travel-toggle-grid');
+  const travelGrid = document.getElementById('travel-fields-grid');
+  if (toggleGrid) toggleGrid.style.display = 'none';
+  if (travelGrid) travelGrid.style.display = 'none';
 
   // Also remove required from the now-hidden fields so validation doesn't block
   ['f-residencecountry', 'f-departurecity'].forEach(id => {
