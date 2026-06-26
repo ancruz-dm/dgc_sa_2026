@@ -331,8 +331,10 @@ const FormState = {
       tshirt_size: orNull(this.data.tshirtSize),
       tshirt_fit:  orNull(this.data.tshirtFit),
 
-      // Status
-      registration_status: flightPending ? 'flight_pending' : 'complete',
+      // Status — must match registrations_registration_status_check constraint:
+      // 'submitted' | 'reviewed' | 'approved' | 'completed'
+      // flight_info_pending flag carries the pending state separately.
+      registration_status: 'submitted',
       attendance_status:   'attending',
 
       // Consent
@@ -363,7 +365,7 @@ const FormState = {
       airport_transfer_arrival:   orNull(this.data.airportTransferArrival),
       airport_transfer_departure: orNull(this.data.airportTransferDeparture),
       flight_info_pending: false,
-      registration_status: 'complete',
+      registration_status: 'submitted',
     };
   },
 };
