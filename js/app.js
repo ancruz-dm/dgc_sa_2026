@@ -291,16 +291,13 @@ const FormState = {
       visa_status:          orNull(this.data.visaRequired),
       yellow_fever_certificate_required: orNull(this.data.yellowFeverRequired),
 
-      // Flights — send real values when booked, placeholder when pending
-      // arrival_datetime and departure_datetime are NOT NULL in the schema,
-      // so we send a sentinel value of '1970-01-01T00:00:00+00:00' when pending.
-      // The flight_info_pending flag tells the admin layer to ignore these values.
+      // Flights — null when pending, real values when booked
       arrival_datetime: flightBooked && this.data.arrivalDate
         ? `${this.data.arrivalDate}T${(this.data.arrivalTime || '12:00').slice(0,5)}:00+00:00`
-        : '1970-01-01T00:00:00+00:00',
+        : null,
       departure_datetime: flightBooked && this.data.departureDate
         ? `${this.data.departureDate}T${(this.data.departureTime || '12:00').slice(0,5)}:00+00:00`
-        : '1970-01-01T00:00:00+00:00',
+        : null,
 
       // Flight pending flag
       flight_info_pending: flightPending,
