@@ -891,7 +891,7 @@ In the meantime, here's what to expect across the six days.
             </div>
             <div class="form-group">
               <label class="form-label" for="f-whatsapp">WhatsApp Number</label>
-              <input class="form-input" type="tel" id="f-whatsapp" name="whatsappNumber" placeholder="+1 555 000 0000" autocomplete="tel" inputmode="tel" pattern="[+\d\s\-().]{7,20}" oninput="this.value=this.value.replace(/[^\d\s+\-().]/g,'')">
+              <input class="form-input" type="tel" id="f-whatsapp" name="whatsappNumber" placeholder="+1 555 000 0000" autocomplete="tel" inputmode="tel" pattern="[+\d\s().\\-]{7,20}" oninput="this.value=this.value.replace(/[^\d\s+().\\-]/g,'')">
               <span class="form-hint">Including country code. Used for event communications and logistics only.</span>
             </div>
           </div>
@@ -1157,7 +1157,7 @@ In the meantime, here's what to expect across the six days.
             </div>
             <div class="form-group full">
               <label class="form-label" for="f-emergencyphone">Emergency Contact Phone <span class="required" aria-label="required">*</span></label>
-              <input class="form-input" type="tel" id="f-emergencyphone" name="emergencyContactPhone" placeholder="+1 555 000 0000 (include country code)" autocomplete="tel" inputmode="tel" pattern="[+\d\s\-().]{7,20}" oninput="this.value=this.value.replace(/[^\d\s+\-().]/g,'')" required>
+              <input class="form-input" type="tel" id="f-emergencyphone" name="emergencyContactPhone" placeholder="+1 555 000 0000 (include country code)" autocomplete="tel" inputmode="tel" pattern="[+\d\s().\\-]{7,20}" oninput="this.value=this.value.replace(/[^\d\s+().\\-]/g,'')" required>
               <span class="form-error" id="err-emergencyphone" role="alert"></span>
             </div>
             <div class="form-group full">
