@@ -23,7 +23,7 @@ const CONFIG = {
   SUPABASE_URL:      'https://uyqgxuwqiqrkyzbnhxph.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV5cWd4dXdxaXFya3l6Ym5oeHBoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMzMxNDEsImV4cCI6MjA5NjcwOTE0MX0.K5qBJZgRagrsgRhBVkBBFKk5keHRQc1HplOO9ClHXEU',
   EVENT_DATE:        new Date('2026-11-22T08:00:00+02:00'),
-  TOTAL_STEPS:       10,
+  TOTAL_STEPS:       9,
 };
 
 /* ============================================================
@@ -287,10 +287,10 @@ const FormState = {
 
       // Flights — only populated when booked
       arrival_datetime: flightBooked && this.data.arrivalDate
-        ? `${this.data.arrivalDate}T${this.data.arrivalTime || '12:00'}:00`
+        ? `${this.data.arrivalDate}T${(this.data.arrivalTime || '12:00').slice(0,5)}:00+00:00`
         : null,
       departure_datetime: flightBooked && this.data.departureDate
-        ? `${this.data.departureDate}T${this.data.departureTime || '12:00'}:00`
+        ? `${this.data.departureDate}T${(this.data.departureTime || '12:00').slice(0,5)}:00+00:00`
         : null,
 
       // Flight pending flag
@@ -345,10 +345,10 @@ const FormState = {
 
     return {
       arrival_datetime: this.data.arrivalDate
-        ? `${this.data.arrivalDate}T${this.data.arrivalTime || '12:00'}:00`
+        ? `${this.data.arrivalDate}T${(this.data.arrivalTime || '12:00').slice(0,5)}:00+00:00`
         : null,
       departure_datetime: this.data.departureDate
-        ? `${this.data.departureDate}T${this.data.departureTime || '12:00'}:00`
+        ? `${this.data.departureDate}T${(this.data.departureTime || '12:00').slice(0,5)}:00+00:00`
         : null,
       country_of_residence: orNull(this.data.countryOfResidence),
       departure_city:       orNull(this.data.departureCity),
@@ -449,28 +449,39 @@ function openFormForNewUser(invitee) {
   document.getElementById('email-gate').hidden    = true;
   document.getElementById('reg-form-wrap').hidden = false;
 
-  // Pre-populate from invitee profile
   if (invitee) {
-    setField('f-fullname',      invitee.full_name);
-    setField('f-gender',        invitee.gender);
+    // Step 1 — personal
+    setField('f-fullname', invitee.full_name);
+    setField('f-gender',   invitee.gender);       // <select>
+
+    // Step 2 — professional
     setField('f-jobtitle',      invitee.job_title);
     setField('f-businessunit',  invitee.business_unit);
     setField('f-officelocation', invitee.office_location);
-    setField('f-officecountry', invitee.office_country);
+    setField('f-officecountry',  invitee.office_country); // country autocomplete text input
 
-    // Pre-fill tshirt_fit from gender
+    // Step 3 — travel: pre-fill country of residence = office country,
+    // departure city = office location (both editable)
+    setField('f-residencecountry', invitee.office_country);
+    setField('f-departurecity',    invitee.office_location);
+
+    // Step 9 — tshirt fit pre-filled from gender
     const fit = invitee.gender === 'Female' ? 'Fitted' : 'Standard';
     setField('f-tshirtfit', fit);
 
-    // Store in FormState so payload picks it up
+    // Store everything in FormState so payload picks it up
+    // (user may skip editing these steps and the DOM values won't be
+    //  re-collected unless we seed FormState here)
     FormState.merge({
-      fullName:       invitee.full_name      || '',
-      gender:         invitee.gender         || '',
-      jobTitle:       invitee.job_title      || '',
-      businessUnit:   invitee.business_unit  || '',
-      officeLocation: invitee.office_location || '',
-      officeCountry:  invitee.office_country || '',
-      tshirtFit:      fit,
+      fullName:           invitee.full_name       || '',
+      gender:             invitee.gender          || '',
+      jobTitle:           invitee.job_title       || '',
+      businessUnit:       invitee.business_unit   || '',
+      officeLocation:     invitee.office_location || '',
+      officeCountry:      invitee.office_country  || '',
+      countryOfResidence: invitee.office_country  || '',
+      departureCity:      invitee.office_location || '',
+      tshirtFit:          fit,
     });
   }
 
@@ -540,25 +551,37 @@ function updateStepIndicatorForResume() {
 
 /* ============================================================
    FLIGHT FIELDS TOGGLE
-   Called by radio change in Step 3.
+   Called by the "Do you have flights booked?" radio in Step 3.
+   Shows/hides the entire flight-fields block (dates + transfers).
+   When hidden, removes required from all contained fields so
+   validation never blocks on them.
    ============================================================ */
 function toggleFlightFields(value) {
   const flightFields = document.getElementById('flight-fields');
   if (!flightFields) return;
 
+  const conditionalIds = [
+    'f-arrivaldate', 'f-arrivaltime', 'f-departuredate', 'f-departuretime',
+    'f-transferarrival', 'f-transferdeparture',
+  ];
+
   if (value === 'yes') {
     flightFields.hidden = false;
-    // Make flight date/time fields required dynamically
-    ['f-arrivaldate','f-arrivaltime','f-departuredate','f-departuretime'].forEach(id => {
+    conditionalIds.forEach(id => {
       const el = document.getElementById(id);
       if (el) el.setAttribute('required', '');
     });
   } else {
     flightFields.hidden = true;
-    // Remove required so validation doesn't block
-    ['f-arrivaldate','f-arrivaltime','f-departuredate','f-departuretime'].forEach(id => {
+    conditionalIds.forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.removeAttribute('required');
+      if (el) {
+        el.removeAttribute('required');
+        // Clear any stale validation state
+        el.classList.remove('invalid');
+        const errEl = document.getElementById(id.replace('f-', 'err-'));
+        if (errEl) errEl.textContent = '';
+      }
     });
   }
 }
@@ -574,16 +597,18 @@ const Validator = {
     'f-businessunit':     { required: true, label: 'Business unit' },
     'f-residencecountry': { required: true, label: 'Country of residence', validate: v => COUNTRIES.includes(v) || 'Please select a country from the list.' },
     'f-departurecity':    { required: true, label: 'Departure city' },
-    'f-arrivaldate':      { required: false, label: 'Arrival date' },   // conditionally required
+    // Flight fields — conditionally required via toggleFlightFields
+    'f-arrivaldate':      { required: false, label: 'Arrival date' },
     'f-arrivaltime':      { required: false, label: 'Arrival time' },
     'f-departuredate':    { required: false, label: 'Departure date' },
     'f-departuretime':    { required: false, label: 'Departure time' },
-    'f-transferarrival':  { required: true, label: 'Arrival transfer' },
-    'f-transferdeparture':{ required: true, label: 'Departure transfer' },
-    'f-tshirtfit':        { required: true, label: 'T-shirt fit' },
-    'f-emergencyname':    { required: true, label: 'Emergency contact name' },
-    'f-emergencyrelation':{ required: true, label: 'Relationship' },
-    'f-emergencyphone':   { required: true, label: 'Emergency contact phone', pattern: /^[+\d\s\-().]{7,20}$/ },
+    // Transfer fields — conditionally required (inside flight-fields block)
+    'f-transferarrival':  { required: false, label: 'Arrival transfer' },
+    'f-transferdeparture':{ required: false, label: 'Departure transfer' },
+    'f-tshirtfit':        { required: true,  label: 'T-shirt fit' },
+    'f-emergencyname':    { required: true,  label: 'Emergency contact name' },
+    'f-emergencyrelation':{ required: true,  label: 'Relationship' },
+    'f-emergencyphone':   { required: true,  label: 'Emergency contact phone', pattern: /^[+\d\s\-().]{7,20}$/ },
   },
 
   setFieldError(field, errId, msg) {
@@ -639,8 +664,8 @@ const Validator = {
       }
     }
 
-    // Step 6: radio groups — EpiPen and travel insurance
-    if (step === 6) {
+    // Step 5 (Health): radio groups — EpiPen and travel insurance
+    if (step === 5) {
       const epipen = document.querySelector('input[name="carriesEpipen"]:checked');
       const errEpipen = document.getElementById('err-epipen');
       if (!epipen) {
@@ -660,8 +685,8 @@ const Validator = {
       }
     }
 
-    // Step 9: t-shirt size
-    if (step === 9) {
+    // Step 8 (Merch): t-shirt size
+    if (step === 8) {
       const selected = document.querySelector('input[name="tshirtSize"]:checked');
       const errEl = document.getElementById('err-tshirt');
       if (!selected) {
@@ -672,8 +697,8 @@ const Validator = {
       }
     }
 
-    // Step 10: consent checkboxes
-    if (step === 10) {
+    // Step 9 (Consent): checkboxes
+    if (step === 9) {
       ['f-privacy', 'f-terms'].forEach(id => {
         const cb = document.getElementById(id);
         const errId = id.replace('f-', 'err-');
@@ -787,9 +812,9 @@ function scrollToForm() {
    FORM SUBMISSION — new registration
    ============================================================ */
 async function submitRegistration() {
-  if (!Validator.validateStep(10)) return;
+  if (!Validator.validateStep(9)) return;
 
-  FormState.merge(collectStepData(10));
+  FormState.merge(collectStepData(9));
 
   const submitBtn  = document.getElementById('submit-btn');
   const btnLabel   = submitBtn.querySelector('.btn-label');
@@ -827,9 +852,12 @@ async function submitRegistration() {
    FLIGHT UPDATE SUBMISSION — resume flow
    ============================================================ */
 async function submitFlightUpdate() {
-  // Validate flight fields in step 3
-  const flightFields = ['f-arrivaldate','f-arrivaltime','f-departuredate','f-departuretime',
-                        'f-residencecountry','f-departurecity','f-transferarrival','f-transferdeparture'];
+  // Validate all fields inside the flight-fields block
+  const flightFields = [
+    'f-arrivaldate', 'f-arrivaltime', 'f-departuredate', 'f-departuretime',
+    'f-residencecountry', 'f-departurecity',
+    'f-transferarrival', 'f-transferdeparture',
+  ];
   let valid = true;
 
   flightFields.forEach(id => {
@@ -837,7 +865,7 @@ async function submitFlightUpdate() {
     if (!el) return;
     const rule  = Validator.rules[id];
     const errId = id.replace('f-', 'err-');
-    if (el.required && !el.value.trim()) {
+    if (!el.value.trim()) {
       Validator.setFieldError(el, errId, (rule ? rule.label : id) + ' is required.');
       valid = false;
     } else {
@@ -878,12 +906,19 @@ async function submitFlightUpdate() {
 
 /* ============================================================
    FIELD HELPER
+   Handles: regular inputs, <select> elements, and the country
+   autocomplete inputs (plain text inputs validated against COUNTRIES).
    ============================================================ */
 function setField(id, value) {
-  if (!value) return;
+  if (value === null || value === undefined || value === '') return;
   const el = document.getElementById(id);
   if (!el) return;
   el.value = value;
+  // For select elements, confirm the option exists before leaving it set
+  if (el.tagName === 'SELECT') {
+    const match = Array.from(el.options).some(o => o.value === value);
+    if (!match) el.value = '';
+  }
 }
 
 /* ============================================================
