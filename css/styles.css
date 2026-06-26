@@ -2357,3 +2357,181 @@ footer {
 
   .day-header { padding: 1rem 0 0.875rem; }
 }
+
+/* ============================================================
+   EMAIL GATE
+   Sits above the multi-step form. Shown by default, hidden
+   once the user passes the gate check.
+   ============================================================ */
+.email-gate {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+  margin-bottom: 1rem;
+}
+
+.email-gate-inner {
+  padding: 2.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.email-gate-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-lg);
+  background: var(--brand-primary-light);
+  border: 1px solid rgba(99,139,163,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-primary-dark);
+  margin-bottom: 1.25rem;
+  flex-shrink: 0;
+}
+
+.email-gate-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.4rem;
+  letter-spacing: -0.02em;
+}
+
+.email-gate-desc {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin-bottom: 1.5rem;
+  max-width: 480px;
+}
+
+.email-gate-field {
+  width: 100%;
+  max-width: 480px;
+  margin-bottom: 1.125rem;
+}
+
+.email-gate-btn {
+  min-width: 140px;
+  justify-content: center;
+}
+
+/* Gate outcome messages */
+.gate-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid var(--border-light);
+}
+
+.gate-msg[hidden] { display: none; }
+
+.gate-msg-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.gate-msg-blocked {
+  background: var(--error-bg);
+  border-color: var(--error-border);
+}
+
+.gate-msg-blocked .gate-msg-icon {
+  background: #FECACA;
+  color: #DC2626;
+}
+
+.gate-msg-blocked strong {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--error-text);
+  margin-bottom: 0.2rem;
+}
+
+.gate-msg-blocked p {
+  font-size: 0.84rem;
+  color: var(--error-text);
+  line-height: 1.6;
+}
+
+.gate-msg-info {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+}
+
+.gate-msg-info .gate-msg-icon {
+  background: #BBF7D0;
+  color: #16A34A;
+}
+
+.gate-msg-info strong {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--success-text);
+  margin-bottom: 0.2rem;
+}
+
+.gate-msg-info p {
+  font-size: 0.84rem;
+  color: var(--success-text);
+  line-height: 1.6;
+}
+
+.gate-msg-warning {
+  background: #FFFBEB;
+  border-color: #FDE68A;
+}
+
+.gate-msg-warning .gate-msg-icon {
+  background: #FDE68A;
+  color: #92400E;
+}
+
+.gate-msg-warning strong {
+  display: block;
+  font-size: 0.875rem;
+  color: #92400E;
+  margin-bottom: 0.2rem;
+}
+
+.gate-msg-warning p {
+  font-size: 0.84rem;
+  color: #78350F;
+  line-height: 1.6;
+}
+
+/* ============================================================
+   FLIGHT FIELDS SECTION
+   Conditionally shown inside Step 3 when flights are booked.
+   ============================================================ */
+.flight-fields-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brand-primary-dark);
+  padding: 0.75rem 0 0.5rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--border-light);
+}
+
+#flight-fields[hidden] { display: none; }
+
+#flight-fields .form-grid {
+  margin-top: 0.75rem;
+  margin-bottom: 0;
+}
