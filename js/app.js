@@ -291,13 +291,16 @@ const FormState = {
       visa_status:          orNull(this.data.visaRequired),
       yellow_fever_certificate_required: orNull(this.data.yellowFeverRequired),
 
-      // Flights — only populated when booked
+      // Flights — send real values when booked, placeholder when pending
+      // arrival_datetime and departure_datetime are NOT NULL in the schema,
+      // so we send a sentinel value of '1970-01-01T00:00:00+00:00' when pending.
+      // The flight_info_pending flag tells the admin layer to ignore these values.
       arrival_datetime: flightBooked && this.data.arrivalDate
         ? `${this.data.arrivalDate}T${(this.data.arrivalTime || '12:00').slice(0,5)}:00+00:00`
-        : null,
+        : '1970-01-01T00:00:00+00:00',
       departure_datetime: flightBooked && this.data.departureDate
         ? `${this.data.departureDate}T${(this.data.departureTime || '12:00').slice(0,5)}:00+00:00`
-        : null,
+        : '1970-01-01T00:00:00+00:00',
 
       // Flight pending flag
       flight_info_pending: flightPending,
@@ -614,7 +617,7 @@ const Validator = {
     'f-tshirtfit':        { required: true,  label: 'T-shirt fit' },
     'f-emergencyname':    { required: true,  label: 'Emergency contact name' },
     'f-emergencyrelation':{ required: true,  label: 'Relationship' },
-    'f-emergencyphone':   { required: true,  label: 'Emergency contact phone', pattern: /^[+\d\s\-().]{7,20}$/ },
+    'f-emergencyphone':   { required: true,  label: 'Emergency contact phone', pattern: /^[+\d\s().\-]{7,20}$/ },
   },
 
   setFieldError(field, errId, msg) {
@@ -789,7 +792,43 @@ function showStep(from, to) {
 
   FormState.currentStep = to;
   updateStepIndicator(to);
+
+  // Re-apply any stored FormState values to the newly visible step.
+  // This handles cases where pre-populated fields (gender, tshirtFit)
+  // weren't picked up by setField because the step was hidden at gate time.
+  applyStoredToStep(to);
+
   scrollToForm();
+}
+
+// Apply FormState.data values to input/select fields in a given step panel.
+// Only sets fields that are currently empty, so user edits are never overwritten.
+function applyStoredToStep(step) {
+  const stepEl = document.getElementById('form-step-' + step);
+  if (!stepEl) return;
+
+  const fieldMap = {
+    'f-fullname':        'fullName',
+    'f-gender':          'gender',
+    'f-jobtitle':        'jobTitle',
+    'f-businessunit':    'businessUnit',
+    'f-officelocation':  'officeLocation',
+    'f-officecountry':   'officeCountry',
+    'f-residencecountry':'countryOfResidence',
+    'f-departurecity':   'departureCity',
+    'f-tshirtfit':       'tshirtFit',
+  };
+
+  Object.entries(fieldMap).forEach(([fieldId, stateKey]) => {
+    const el = stepEl.querySelector('#' + fieldId);
+    if (!el) return;
+    const stored = FormState.data[stateKey];
+    if (!stored) return;
+    // Only fill if currently empty so user edits aren't clobbered
+    if (el.value === '' || el.value === null) {
+      el.value = stored;
+    }
+  });
 }
 
 function updateStepIndicator(current) {
