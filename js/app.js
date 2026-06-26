@@ -91,8 +91,7 @@ const GateService = {
 
       return { outcome: 'registered' };
 
-    } catch (err) {
-      console.error('[GateService.check]', err);
+    } catch {
       return {
         outcome: 'error',
         message: !navigator.onLine
@@ -124,10 +123,9 @@ const RegistrationService = {
         return { success: true };
       }
 
-      // Parse the error body so we can see exactly what Supabase rejected
+      // Parse the error body for internal handling only — never expose to user
       let errBody = {};
       try { errBody = await response.json(); } catch { /* non-JSON body */ }
-      console.error('[RegistrationService.submit] HTTP', response.status, JSON.stringify(errBody));
 
       if (response.status === 409) {
         return {
@@ -143,14 +141,12 @@ const RegistrationService = {
         };
       }
 
-      const detail = errBody.message || errBody.hint || errBody.details || '';
       return {
         success: false,
-        error: `Submission failed (HTTP ${response.status}${detail ? ': ' + detail : ''}). Please try again or contact aclowes@carinasw.com.`,
+        error: 'Submission failed. Please try again or contact aclowes@carinasw.com.',
       };
 
-    } catch (err) {
-      console.error('[RegistrationService.submit] Network error', err);
+    } catch {
       return {
         success: false,
         error: !navigator.onLine
@@ -260,12 +256,15 @@ const FormState = {
   },
 
   buildPayload() {
-    const sanitise = val =>
-      typeof val === 'string' ? val.trim().replace(/[<>]/g, '') : val;
+    // Strip HTML-significant characters and cap length to prevent oversized payloads
+    const sanitise = (val, max = 200) =>
+      typeof val === 'string'
+        ? val.trim().replace(/[<>]/g, '').slice(0, max)
+        : val;
 
-    const orNull = val => {
+    const orNull = (val, max = 200) => {
       if (val === null || val === undefined) return null;
-      const s = String(val).trim();
+      const s = String(val).trim().slice(0, max);
       return s === '' ? null : s;
     };
 
@@ -307,25 +306,25 @@ const FormState = {
       airport_transfer_departure: orNull(this.data.airportTransferDeparture),
 
       // Dietary
-      dietary_restrictions: orNull(this.data.dietaryRestrictions),
-      food_allergies:       orNull(this.data.foodAllergies),
-      dietary_notes:        orNull(this.data.dietaryNotes),
+      dietary_restrictions: orNull(this.data.dietaryRestrictions, 500),
+      food_allergies:       orNull(this.data.foodAllergies, 500),
+      dietary_notes:        orNull(this.data.dietaryNotes, 2000),
 
       // Health & emergency
-      medical_conditions:              orNull(this.data.medicalConditions),
-      medications:                     orNull(this.data.medications),
+      medical_conditions:              orNull(this.data.medicalConditions, 2000),
+      medications:                     orNull(this.data.medications, 500),
       carries_epipen: this.data.carriesEpipen === 'yes' || this.data.carriesEpipen === true,
-      emergency_contact_name:          orNull(this.data.emergencyContactName),
-      emergency_contact_relationship:  orNull(this.data.emergencyContactRelationship),
-      emergency_contact_phone:         orNull(this.data.emergencyContactPhone),
-      travel_insurance_confirmed:      orNull(this.data.travelInsurance),
+      emergency_contact_name:          orNull(this.data.emergencyContactName, 200),
+      emergency_contact_relationship:  orNull(this.data.emergencyContactRelationship, 100),
+      emergency_contact_phone:         orNull(this.data.emergencyContactPhone, 30),
+      travel_insurance_confirmed:      orNull(this.data.travelInsurance, 20),
 
       // Accessibility
-      mobility_requirements:      orNull(this.data.mobilityRequirements),
-      accessibility_requirements: orNull(this.data.accessibilityRequirements),
+      mobility_requirements:      orNull(this.data.mobilityRequirements, 2000),
+      accessibility_requirements: orNull(this.data.accessibilityRequirements, 2000),
 
       // Programme — TEXT not array
-      preferred_topics: orNull(this.data.preferredTopics),
+      preferred_topics: orNull(this.data.preferredTopics, 5000),
 
       // Merchandise
       tshirt_size: orNull(this.data.tshirtSize),
@@ -371,8 +370,14 @@ const FormState = {
 /* ============================================================
    EMAIL GATE HANDLER
    Called when user clicks Continue on the gate screen.
+   Includes a cooldown to prevent automated enumeration.
    ============================================================ */
+let _gateCooldown = false;
+
 async function handleEmailGate() {
+  // Simple cooldown — prevents rapid automated lookups
+  if (_gateCooldown) return;
+
   const emailInput = document.getElementById('gate-email');
   const errorEl    = document.getElementById('gate-email-error');
   const btn        = document.getElementById('gate-btn');
@@ -401,6 +406,10 @@ async function handleEmailGate() {
   hideAllGateMsgs();
 
   const result = await GateService.check(email);
+
+  // Enforce 3-second cooldown between gate lookups regardless of outcome
+  _gateCooldown = true;
+  setTimeout(() => { _gateCooldown = false; }, 3000);
 
   btn.disabled      = false;
   btnLabel.hidden   = false;
@@ -893,7 +902,6 @@ async function submitRegistration() {
   if (errorBox)   errorBox.hidden   = true;
 
   const payload = FormState.buildPayload();
-  console.log('[submitRegistration] payload', JSON.stringify(payload, null, 2));
   const result  = await RegistrationService.submit(payload);
 
   if (result.success) {
