@@ -501,7 +501,7 @@ In the meantime, here's what to expect across the six days.
 
     </div>
 
-    <!-- Map embed — Pearl Valley Hotel (-33.8222616, 18.9863186) -->
+    <!-- Map embed -->
     <div class="venue-map-wrap">
       <iframe
         title="Pearl Valley Hotel location map"
@@ -734,10 +734,98 @@ In the meantime, here's what to expect across the six days.
       <div class="register-header">
         <p class="section-eyebrow">Registration</p>
         <h2 id="register-heading" class="section-title">Secure Your Place</h2>
-        <p class="section-sub">Complete your registration below. All information is used solely for logistics and event planning. Auto-saved as you go.</p>
+        <p class="section-sub">Complete your registration below. All information is used solely for logistics and event planning.</p>
       </div>
 
-      <div class="reg-form-wrap" id="reg-form-wrap">
+      <!-- ============================================================
+           EMAIL GATE — sits before the step form
+           ============================================================ -->
+      <div class="email-gate" id="email-gate">
+        <div class="email-gate-inner">
+          <div class="email-gate-icon" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </div>
+          <h3 class="email-gate-title">Enter your work email to get started</h3>
+          <p class="email-gate-desc">Registration is by invitation only. Enter your work email address to confirm your place on the list and continue.</p>
+          <div class="email-gate-field">
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label" for="gate-email">Work Email</label>
+              <input
+                class="form-input"
+                type="email"
+                id="gate-email"
+                placeholder="you@datamine.com"
+                autocomplete="email"
+                inputmode="email"
+              >
+              <span class="form-error" id="gate-email-error" role="alert"></span>
+            </div>
+          </div>
+          <button type="button" class="btn-primary email-gate-btn" id="gate-btn" onclick="handleEmailGate()">
+            <span class="btn-label">Continue</span>
+            <span class="btn-loading" hidden aria-hidden="true">
+              <svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+              Checking…
+            </span>
+          </button>
+        </div>
+
+        <!-- Gate outcome messages — shown/hidden by JS -->
+
+        <!-- Not on list -->
+        <div class="gate-msg gate-msg-blocked" id="gate-msg-notfound" hidden role="alert">
+          <div class="gate-msg-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </div>
+          <div>
+            <strong>This email address is not on the invite list.</strong>
+            <p>If you believe this is an error, please contact <a href="mailto:aclowes@carinasw.com">Anton Clowes</a>.</p>
+          </div>
+        </div>
+
+        <!-- Already fully registered -->
+        <div class="gate-msg gate-msg-info" id="gate-msg-registered" hidden role="alert">
+          <div class="gate-msg-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div>
+            <strong>You're already registered.</strong>
+            <p>Your registration for the Datamine Global Conference 2026 is complete. If you need to make any changes, please contact <a href="mailto:aclowes@carinasw.com">Anton Clowes</a>.</p>
+          </div>
+        </div>
+
+        <!-- Flight info pending — resume prompt -->
+        <div class="gate-msg gate-msg-warning" id="gate-msg-flightpending" hidden role="alert">
+          <div class="gate-msg-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+          </div>
+          <div>
+            <strong>Your flight details are still outstanding.</strong>
+            <p>Your registration is saved, but we're still waiting on your flight information. Click below to add your travel details.</p>
+            <button type="button" class="btn-primary" style="margin-top:0.875rem" onclick="resumeFlightDetails()">
+              Add flight details
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Network / unexpected error -->
+        <div class="gate-msg gate-msg-blocked" id="gate-msg-error" hidden role="alert">
+          <div class="gate-msg-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div>
+            <strong>Something went wrong.</strong>
+            <p id="gate-error-detail">Please try again or contact <a href="mailto:aclowes@carinasw.com">aclowes@carinasw.com</a>.</p>
+          </div>
+        </div>
+
+      </div><!-- /email-gate -->
+
+      <!-- ============================================================
+           MULTI-STEP FORM — hidden until gate passes
+           ============================================================ -->
+      <div class="reg-form-wrap" id="reg-form-wrap" hidden>
 
         <!-- STEP INDICATOR -->
         <nav class="form-steps" aria-label="Registration form progress">
@@ -784,21 +872,28 @@ In the meantime, here's what to expect across the six days.
         </nav>
 
         <!-- STEP 1: Personal Information -->
+        <!-- email is no longer collected here — captured at gate -->
         <div id="form-step-1" class="form-step-panel" role="form" aria-labelledby="step1-heading">
           <h3 class="form-step-heading" id="step1-heading">Personal Information</h3>
-          <p class="form-step-desc">Your basic contact details for event communications.</p>
+          <p class="form-step-desc">Please review and confirm your details. You can edit any pre-filled information if needed.</p>
           <div class="form-grid">
             <div class="form-group full">
               <label class="form-label" for="f-fullname">Full Name <span class="required" aria-label="required">*</span></label>
               <input class="form-input" type="text" id="f-fullname" name="fullName" placeholder="Your full name" autocomplete="name" required>
               <span class="form-error" id="err-fullname" role="alert"></span>
             </div>
-            <div class="form-group full">
-              <label class="form-label" for="f-email">Work Email <span class="required" aria-label="required">*</span></label>
-              <input class="form-input" type="email" id="f-email" name="email" placeholder="you@datamine.com" autocomplete="email" required>
-              <span class="form-error" id="err-email" role="alert"></span>
+            <div class="form-group">
+              <label class="form-label" for="f-gender">Gender <span class="required" aria-label="required">*</span></label>
+              <select class="form-select" id="f-gender" name="gender" required>
+                <option value="">Select…</option>
+                <option value="Female">Female</option>
+                <option value="Male">Male</option>
+                <option value="Non-binary">Non-binary</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
+              <span class="form-error" id="err-gender" role="alert"></span>
             </div>
-            <div class="form-group full">
+            <div class="form-group">
               <label class="form-label" for="f-whatsapp">WhatsApp Number</label>
               <input class="form-input" type="tel" id="f-whatsapp" name="whatsappNumber" placeholder="+1 555 000 0000" autocomplete="tel" inputmode="tel" pattern="[+\d\s\-().]{7,20}" oninput="this.value=this.value.replace(/[^\d\s+\-().]/g,'')">
               <span class="form-hint">Including country code. Used for event communications and logistics only.</span>
@@ -816,7 +911,7 @@ In the meantime, here's what to expect across the six days.
         <!-- STEP 2: Professional Information -->
         <div id="form-step-2" class="form-step-panel" role="form" aria-labelledby="step2-heading" hidden>
           <h3 class="form-step-heading" id="step2-heading">Professional Information</h3>
-          <p class="form-step-desc">Your role and where you sit in the organisation.</p>
+          <p class="form-step-desc">Your role and where you sit in the organisation. Pre-filled from our records — edit if anything has changed.</p>
           <div class="form-grid">
             <div class="form-group full">
               <label class="form-label" for="f-jobtitle">Job Title <span class="required" aria-label="required">*</span></label>
@@ -859,6 +954,23 @@ In the meantime, here's what to expect across the six days.
         <div id="form-step-3" class="form-step-panel" role="form" aria-labelledby="step3-heading" hidden>
           <h3 class="form-step-heading" id="step3-heading">Travel Information</h3>
           <p class="form-step-desc">Your travel details for logistics coordination.</p>
+
+          <!-- Flight booked toggle — controls whether flight fields are shown -->
+          <div class="form-grid">
+            <div class="form-group full">
+              <label class="form-label">Do you have your flights booked? <span class="required" aria-label="required">*</span></label>
+              <div class="radio-group" role="radiogroup" id="flight-booked-group">
+                <label class="radio-label">
+                  <input type="radio" name="flightBooked" value="yes" onchange="toggleFlightFields(this.value)"> Yes — I have my flights booked
+                </label>
+                <label class="radio-label">
+                  <input type="radio" name="flightBooked" value="no" onchange="toggleFlightFields(this.value)"> Not yet — I'll add them later
+                </label>
+              </div>
+              <span class="form-error" id="err-flightbooked" role="alert"></span>
+            </div>
+          </div>
+
           <div class="form-grid">
             <div class="form-group">
               <label class="form-label" for="f-residencecountry">Country of Residence <span class="required" aria-label="required">*</span></label>
@@ -897,43 +1009,40 @@ In the meantime, here's what to expect across the six days.
                 <option value="unsure">Unsure — I need to check</option>
               </select>
             </div>
-            <div class="form-group">
-              <label class="form-label" for="f-arrivaldate">Arrival Date <span class="required" aria-label="required">*</span></label>
-<input
-  class="form-input"
-  type="date"
-  id="f-arrivaldate"
-  name="arrivalDate"
-  min="2026-11-01"
-  max="2026-11-27"
-  value="2026-11-22"
-  required>
-              <span class="form-error" id="err-arrivaldate" role="alert"></span>
+          </div>
+
+          <!-- Flight detail fields — shown only when flights are booked -->
+          <div id="flight-fields" hidden>
+            <div class="flight-fields-header">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+              Flight Details
             </div>
-            <div class="form-group">
-              <label class="form-label" for="f-arrivaltime">Arrival Time (local South Africa) <span class="required" aria-label="required">*</span></label>
-              <input class="form-input" type="time" id="f-arrivaltime" name="arrivalTime" required>
-              <span class="form-error" id="err-arrivaltime" role="alert"></span>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="f-departuredate">Departure Date <span class="required" aria-label="required">*</span></label>
-<input
-  class="form-input"
-  type="date"
-  id="f-departuredate"
-  name="departureDate"
-  min="2026-11-22"
-  max="2026-11-30"
-  value="2026-11-27"
-  required>
-              <span class="form-error" id="err-departuredate" role="alert"></span>
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="f-departuretime">Departure Time (local South Africa) <span class="required" aria-label="required">*</span></label>
-              <input class="form-input" type="time" id="f-departuretime" name="departureTime" required>
-              <span class="form-error" id="err-departuretime" role="alert"></span>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label" for="f-arrivaldate">Arrival Date <span class="required" aria-label="required">*</span></label>
+                <input class="form-input" type="date" id="f-arrivaldate" name="arrivalDate"
+                  min="2026-11-01" max="2026-11-27" value="2026-11-22">
+                <span class="form-error" id="err-arrivaldate" role="alert"></span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="f-arrivaltime">Arrival Time (South Africa) <span class="required" aria-label="required">*</span></label>
+                <input class="form-input" type="time" id="f-arrivaltime" name="arrivalTime">
+                <span class="form-error" id="err-arrivaltime" role="alert"></span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="f-departuredate">Departure Date <span class="required" aria-label="required">*</span></label>
+                <input class="form-input" type="date" id="f-departuredate" name="departureDate"
+                  min="2026-11-22" max="2026-11-30" value="2026-11-27">
+                <span class="form-error" id="err-departuredate" role="alert"></span>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="f-departuretime">Departure Time (South Africa) <span class="required" aria-label="required">*</span></label>
+                <input class="form-input" type="time" id="f-departuretime" name="departureTime">
+                <span class="form-error" id="err-departuretime" role="alert"></span>
+              </div>
             </div>
           </div>
+
           <div class="form-nav">
             <button type="button" class="btn-ghost" onclick="prevStep(3)">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -1137,37 +1246,31 @@ In the meantime, here's what to expect across the six days.
         <!-- STEP 9: Merchandise -->
         <div id="form-step-9" class="form-step-panel" role="form" aria-labelledby="step9-heading" hidden>
           <h3 class="form-step-heading" id="step9-heading">Conference Merchandise</h3>
-          <p class="form-step-desc">A Datamine conference t-shirt will be provided to all delegates. Please select your size.</p>
+          <p class="form-step-desc">A Datamine conference t-shirt will be provided to all delegates. Please confirm your size and preferred fit.</p>
           <div class="form-grid">
             <div class="form-group full">
               <label class="form-label" for="f-tshirt">T-Shirt Size <span class="required" aria-label="required">*</span></label>
               <div class="size-selector" role="radiogroup" aria-label="T-shirt size">
-                <label class="size-option">
-                  <input type="radio" name="tshirtSize" value="XS"> <span>XS</span>
-                </label>
-                <label class="size-option">
-                  <input type="radio" name="tshirtSize" value="S"> <span>S</span>
-                </label>
-                <label class="size-option">
-                  <input type="radio" name="tshirtSize" value="M"> <span>M</span>
-                </label>
-                <label class="size-option">
-                  <input type="radio" name="tshirtSize" value="L"> <span>L</span>
-                </label>
-                <label class="size-option">
-                  <input type="radio" name="tshirtSize" value="XL"> <span>XL</span>
-                </label>
-                <label class="size-option">
-                  <input type="radio" name="tshirtSize" value="XXL"> <span>XXL</span>
-                </label>
-                <label class="size-option">
-                  <input type="radio" name="tshirtSize" value="3XL"> <span>3XL</span>
-                </label>
-                <label class="size-option">
-                  <input type="radio" name="tshirtSize" value="4XL"> <span>4XL</span>
-                </label>
+                <label class="size-option"><input type="radio" name="tshirtSize" value="XS"> <span>XS</span></label>
+                <label class="size-option"><input type="radio" name="tshirtSize" value="S"> <span>S</span></label>
+                <label class="size-option"><input type="radio" name="tshirtSize" value="M"> <span>M</span></label>
+                <label class="size-option"><input type="radio" name="tshirtSize" value="L"> <span>L</span></label>
+                <label class="size-option"><input type="radio" name="tshirtSize" value="XL"> <span>XL</span></label>
+                <label class="size-option"><input type="radio" name="tshirtSize" value="XXL"> <span>XXL</span></label>
+                <label class="size-option"><input type="radio" name="tshirtSize" value="3XL"> <span>3XL</span></label>
+                <label class="size-option"><input type="radio" name="tshirtSize" value="4XL"> <span>4XL</span></label>
               </div>
               <span class="form-error" id="err-tshirt" role="alert"></span>
+            </div>
+            <div class="form-group full">
+              <label class="form-label" for="f-tshirtfit">T-Shirt Fit <span class="required" aria-label="required">*</span></label>
+              <select class="form-select" id="f-tshirtfit" name="tshirtFit" required>
+                <option value="">Select…</option>
+                <option value="Fitted">Fitted</option>
+                <option value="Standard">Standard</option>
+              </select>
+              <span class="form-hint">Pre-selected based on your profile. Update if you prefer a different cut.</span>
+              <span class="form-error" id="err-tshirtfit" role="alert"></span>
             </div>
           </div>
           <div class="form-nav">
@@ -1225,7 +1328,7 @@ In the meantime, here's what to expect across the six days.
 
       </div><!-- /reg-form-wrap -->
 
-      <!-- SUCCESS STATE -->
+      <!-- SUCCESS STATE — full registration -->
       <div class="success-box" id="success-box" hidden role="alert" aria-live="assertive">
         <div class="success-icon" aria-hidden="true">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
@@ -1236,6 +1339,15 @@ In the meantime, here's what to expect across the six days.
           Contact the events team
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
         </a>
+      </div>
+
+      <!-- SUCCESS STATE — flight details updated -->
+      <div class="success-box" id="success-box-flight" hidden role="alert" aria-live="assertive">
+        <div class="success-icon" aria-hidden="true">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+        </div>
+        <h3>Flight details updated!</h3>
+        <p>Your travel information has been saved. The events team will use this to coordinate your airport transfer. If anything changes, contact <a href="mailto:aclowes@carinasw.com">Anton Clowes</a>.</p>
       </div>
 
       <!-- ERROR STATE -->
@@ -1354,12 +1466,13 @@ In the meantime, here's what to expect across the six days.
             <th>Business Unit</th>
             <th>Country</th>
             <th>Visa</th>
+            <th>Status</th>
             <th>T-shirt</th>
             <th>Submitted</th>
           </tr>
         </thead>
         <tbody id="admin-tbody">
-          <tr><td colspan="8" class="admin-loading">Loading registrations…</td></tr>
+          <tr><td colspan="9" class="admin-loading">Loading registrations…</td></tr>
         </tbody>
       </table>
     </div>
