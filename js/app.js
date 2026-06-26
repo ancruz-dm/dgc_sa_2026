@@ -343,7 +343,9 @@ const FormState = {
     };
   },
 
-  // Payload for flight-pending PATCH — only flight-related fields
+  // Payload for flight-pending PATCH — only flight + transfer fields.
+  // Country, departure city, visa, yellow fever are already stored from
+  // the initial registration and must not be overwritten here.
   buildFlightPayload() {
     const orNull = val => {
       if (val === null || val === undefined) return null;
@@ -358,10 +360,6 @@ const FormState = {
       departure_datetime: this.data.departureDate
         ? `${this.data.departureDate}T${(this.data.departureTime || '12:00').slice(0,5)}:00+00:00`
         : null,
-      country_of_residence: orNull(this.data.countryOfResidence),
-      departure_city:       orNull(this.data.departureCity),
-      visa_status:          orNull(this.data.visaRequired),
-      yellow_fever_certificate_required: orNull(this.data.yellowFeverRequired),
       airport_transfer_arrival:   orNull(this.data.airportTransferArrival),
       airport_transfer_departure: orNull(this.data.airportTransferDeparture),
       flight_info_pending: false,
@@ -499,31 +497,64 @@ function openFormForNewUser(invitee) {
 
 /* ============================================================
    RESUME FLIGHT DETAILS — returning user
-   Hides gate, shows form starting at Step 3 (travel).
+   Shows Step 3 but hides everything already submitted.
+   Only the flight dates/times and transfers are shown.
    ============================================================ */
 function resumeFlightDetails() {
   document.getElementById('email-gate').hidden    = true;
   document.getElementById('reg-form-wrap').hidden = false;
 
-  // Show only step 3, hide step indicator steps 1-2 (already completed)
   updateStepIndicatorForResume();
 
-  // Jump directly to step 3
+  // Show step 3, hide all others
   FormState.currentStep = 3;
   document.querySelectorAll('.form-step-panel').forEach(p => { p.hidden = true; });
   const step3 = document.getElementById('form-step-3');
   if (step3) step3.hidden = false;
 
-  // Show flight fields immediately (they're resuming to add them)
+  // Hide the general travel fields — already submitted on first registration
+  // Only show the flight-fields block (dates, times, transfers)
+  const fieldsToHide = [
+    'flight-booked-group',       // "Do you have flights booked?" radio
+    'wrap-residencecountry',     // country of residence
+    'f-departurecity',           // departure city
+    'f-visarequired',            // visa select
+    'f-yellowfever',             // yellow fever select
+  ];
+  fieldsToHide.forEach(id => {
+    // Hide the closest form-group wrapper so label + error also disappear
+    const el = document.getElementById(id);
+    if (!el) return;
+    const group = el.closest('.form-group') || el.closest('[role="radiogroup"]')?.closest('.form-group');
+    if (group) group.hidden = true;
+  });
+
+  // Also hide the flight booked radio label/group directly
+  const flightBookedGroup = document.getElementById('flight-booked-group');
+  if (flightBookedGroup) {
+    const wrapper = flightBookedGroup.closest('.form-group');
+    if (wrapper) wrapper.hidden = true;
+  }
+
+  // Show flight-fields block and make all its fields required
   const flightFields = document.getElementById('flight-fields');
-  if (flightFields) flightFields.hidden = false;
+  if (flightFields) {
+    flightFields.hidden = false;
+    ['f-arrivaldate','f-arrivaltime','f-departuredate','f-departuretime',
+     'f-transferarrival','f-transferdeparture'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.setAttribute('required', '');
+    });
+  }
 
-  // Pre-select "yes" for flight booked
-  const yesRadio = document.querySelector('input[name="flightBooked"][value="yes"]');
-  if (yesRadio) yesRadio.checked = true;
+  // Update heading and description for context
+  const heading = step3.querySelector('.form-step-heading');
+  if (heading) heading.textContent = 'Flight & Transfer Details';
+  const desc = step3.querySelector('.form-step-desc');
+  if (desc) desc.textContent = 'Add your flight information and transfer requirements to complete your registration.';
 
-  // Adjust step 3 Back button — goes back to gate (not step 2)
-  const backBtn = document.querySelector('#form-step-3 .btn-ghost');
+  // Back button — returns to gate flight-pending message
+  const backBtn = step3.querySelector('.btn-ghost');
   if (backBtn) {
     backBtn.onclick = () => {
       document.getElementById('reg-form-wrap').hidden = true;
@@ -533,11 +564,12 @@ function resumeFlightDetails() {
     };
   }
 
-  // Override Continue button on step 3 to submit flight update instead
-  const continueBtn = document.querySelector('#form-step-3 .btn-primary');
+  // Continue button — submits flight PATCH instead of proceeding to Step 4
+  const continueBtn = step3.querySelector('.btn-primary');
   if (continueBtn) {
     continueBtn.onclick = () => submitFlightUpdate();
-    continueBtn.querySelector('.btn-label') && (continueBtn.querySelector('.btn-label').textContent || (continueBtn.textContent = 'Save flight details'));
+    const label = continueBtn.querySelector('.btn-label');
+    if (label) label.textContent = 'Save flight details';
   }
 
   scrollToForm();
@@ -897,10 +929,10 @@ async function submitRegistration() {
    FLIGHT UPDATE SUBMISSION — resume flow
    ============================================================ */
 async function submitFlightUpdate() {
-  // Validate all fields inside the flight-fields block
+  // Only validate the flight-fields block — country/city are already stored
   const flightFields = [
-    'f-arrivaldate', 'f-arrivaltime', 'f-departuredate', 'f-departuretime',
-    'f-residencecountry', 'f-departurecity',
+    'f-arrivaldate', 'f-arrivaltime',
+    'f-departuredate', 'f-departuretime',
     'f-transferarrival', 'f-transferdeparture',
   ];
   let valid = true;
