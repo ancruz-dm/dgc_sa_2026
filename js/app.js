@@ -124,6 +124,11 @@ const RegistrationService = {
         return { success: true };
       }
 
+      // Parse the error body so we can see exactly what Supabase rejected
+      let errBody = {};
+      try { errBody = await response.json(); } catch { /* non-JSON body */ }
+      console.error('[RegistrationService.submit] HTTP', response.status, JSON.stringify(errBody));
+
       if (response.status === 409) {
         return {
           success: false,
@@ -131,7 +136,6 @@ const RegistrationService = {
         };
       }
 
-      // Surface RLS rejection clearly
       if (response.status === 403 || response.status === 401) {
         return {
           success: false,
@@ -139,12 +143,14 @@ const RegistrationService = {
         };
       }
 
+      const detail = errBody.message || errBody.hint || errBody.details || '';
       return {
         success: false,
-        error: 'Submission failed (HTTP ' + response.status + '). Please try again or contact aclowes@carinasw.com.',
+        error: `Submission failed (HTTP ${response.status}${detail ? ': ' + detail : ''}). Please try again or contact aclowes@carinasw.com.`,
       };
 
-    } catch {
+    } catch (err) {
+      console.error('[RegistrationService.submit] Network error', err);
       return {
         success: false,
         error: !navigator.onLine
@@ -828,6 +834,7 @@ async function submitRegistration() {
   if (errorBox)   errorBox.hidden   = true;
 
   const payload = FormState.buildPayload();
+  console.log('[submitRegistration] payload', JSON.stringify(payload, null, 2));
   const result  = await RegistrationService.submit(payload);
 
   if (result.success) {
