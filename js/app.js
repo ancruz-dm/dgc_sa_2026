@@ -1,10 +1,15 @@
 /**
  * Datamine Global Conference 2026 — app.js
- * Version 2
+ * Version 3
  *
- * Architecture: clean service layer, Supabase REST backend.
- * 10-step multi-form with in-memory auto-save.
- * Hidden admin panel activated via ?admin=true
+ * New in v3:
+ *  - Email gate: Supabase lookup against approved_attendees before form renders
+ *  - 5 gate outcomes: not found / fully registered / flight pending / new user / error
+ *  - Profile pre-population from approved_attendees (editable by user)
+ *  - Gender field in Step 1, tshirt_fit pre-filled from gender
+ *  - Flight booked toggle in Step 3 — shows/hides flight detail fields
+ *  - Flight-pending resume flow: PATCH existing record, jump to Step 3
+ *  - flight_info_pending + gender + attendance_status written to registrations
  *
  * preferred_topics is TEXT (not array) per database schema.
  */
@@ -22,6 +27,84 @@ const CONFIG = {
 };
 
 /* ============================================================
+   SUPABASE HELPERS
+   ============================================================ */
+const SB = {
+  headers(extra = {}) {
+    return {
+      'Content-Type':  'application/json',
+      'apikey':        CONFIG.SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + CONFIG.SUPABASE_ANON_KEY,
+      ...extra,
+    };
+  },
+
+  async get(path) {
+    const res = await fetch(CONFIG.SUPABASE_URL + path, { headers: this.headers() });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  },
+};
+
+/* ============================================================
+   GATE SERVICE
+   Resolves the email against approved_attendees and registrations.
+   Returns one of 5 outcomes:
+     { outcome: 'not_found' }
+     { outcome: 'registered' }
+     { outcome: 'flight_pending', registrationId, invitee }
+     { outcome: 'new_user', invitee }
+     { outcome: 'error', message }
+   ============================================================ */
+const GateService = {
+
+  async check(email) {
+    const normalised = email.trim().toLowerCase();
+
+    try {
+      // 1. Check approved_attendees
+      const invitees = await SB.get(
+        `/rest/v1/approved_attendees?email=eq.${encodeURIComponent(normalised)}&select=*&limit=1`
+      );
+
+      if (!invitees || invitees.length === 0) {
+        return { outcome: 'not_found' };
+      }
+
+      const invitee = invitees[0];
+
+      // 2. Check registrations for existing record
+      const regs = await SB.get(
+        `/rest/v1/registrations?work_email=eq.${encodeURIComponent(normalised)}&select=id,registration_status,flight_info_pending&limit=1`
+      );
+
+      if (!regs || regs.length === 0) {
+        return { outcome: 'new_user', invitee };
+      }
+
+      const reg = regs[0];
+
+      // Flight pending takes priority over complete — allows resume
+      if (reg.flight_info_pending === true) {
+        return { outcome: 'flight_pending', registrationId: reg.id, invitee };
+      }
+
+      return { outcome: 'registered' };
+
+    } catch (err) {
+      console.error('[GateService.check]', err);
+      return {
+        outcome: 'error',
+        message: !navigator.onLine
+          ? 'You appear to be offline. Please check your connection and try again.'
+          : 'Could not verify your email. Please try again or contact aclowes@carinasw.com.',
+      };
+    }
+  },
+
+};
+
+/* ============================================================
    REGISTRATION SERVICE
    ============================================================ */
 const RegistrationService = {
@@ -31,10 +114,8 @@ const RegistrationService = {
       const response = await fetch(CONFIG.SUPABASE_URL + '/rest/v1/registrations', {
         method: 'POST',
         headers: {
-          'Content-Type':  'application/json',
-          'apikey':        CONFIG.SUPABASE_ANON_KEY,
-          'Authorization': 'Bearer ' + CONFIG.SUPABASE_ANON_KEY,
-          'Prefer':        'return=minimal',
+          ...SB.headers(),
+          'Prefer': 'return=minimal',
         },
         body: JSON.stringify(payload),
       });
@@ -50,9 +131,51 @@ const RegistrationService = {
         };
       }
 
+      // Surface RLS rejection clearly
+      if (response.status === 403 || response.status === 401) {
+        return {
+          success: false,
+          error: 'Access denied. Your email address is not authorised to register. Please contact aclowes@carinasw.com.',
+        };
+      }
+
       return {
         success: false,
-        error: 'Submission failed. Please try again or contact aclowes@carinasw.com.',
+        error: 'Submission failed (HTTP ' + response.status + '). Please try again or contact aclowes@carinasw.com.',
+      };
+
+    } catch {
+      return {
+        success: false,
+        error: !navigator.onLine
+          ? 'You appear to be offline. Please check your connection and try again.'
+          : 'Could not reach the registration service. Please try again or contact aclowes@carinasw.com.',
+      };
+    }
+  },
+
+  // PATCH existing registration — used for flight-pending resume
+  async updateFlight(registrationId, flightPayload) {
+    try {
+      const response = await fetch(
+        CONFIG.SUPABASE_URL + '/rest/v1/registrations?id=eq.' + registrationId,
+        {
+          method: 'PATCH',
+          headers: {
+            ...SB.headers(),
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify(flightPayload),
+        }
+      );
+
+      if (response.status === 204 || response.status === 200) {
+        return { success: true };
+      }
+
+      return {
+        success: false,
+        error: 'Could not update flight details (HTTP ' + response.status + '). Please try again or contact aclowes@carinasw.com.',
       };
 
     } catch {
@@ -69,11 +192,7 @@ const RegistrationService = {
     try {
       const response = await fetch(CONFIG.SUPABASE_URL + '/rest/v1/rpc/get_registration_stats', {
         method: 'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'apikey':        CONFIG.SUPABASE_ANON_KEY,
-          'Authorization': 'Bearer ' + CONFIG.SUPABASE_ANON_KEY,
-        },
+        headers: SB.headers(),
         body: JSON.stringify({}),
       });
       if (!response.ok) return { confirmed: 0, countries: 0 };
@@ -83,6 +202,17 @@ const RegistrationService = {
     }
   },
 
+};
+
+/* ============================================================
+   GATE STATE
+   Tracks what we know after the email lookup.
+   ============================================================ */
+const GateState = {
+  email:          null,   // normalised email from gate
+  invitee:        null,   // row from approved_attendees
+  mode:           null,   // 'new' | 'resume_flight'
+  registrationId: null,   // set when resuming flight
 };
 
 /* ============================================================
@@ -98,7 +228,6 @@ const FormState = {
     this._saveDraft();
   },
 
-  // Fields too sensitive to persist in sessionStorage
   _sensitiveFields: [
     'medicalConditions', 'medications', 'carriesEpipen',
     'emergencyContactName', 'emergencyContactRelationship', 'emergencyContactPhone',
@@ -134,78 +263,305 @@ const FormState = {
       return s === '' ? null : s;
     };
 
-    const email = (this.data.email || '').trim().toLowerCase().replace(/\s+/g, '');
-
-    // preferred_topics is TEXT (not array) per Supabase schema
-    const preferredTopics = orNull(this.data.preferredTopics);
+    const flightBooked   = this.data.flightBooked === 'yes';
+    const flightPending  = !flightBooked;
 
     return {
-      // Personal
-      full_name:                     sanitise(this.data.fullName       || ''),
-      work_email: email,
-      whatsapp_number:               orNull(this.data.whatsappNumber),
+      // Identity — email captured at gate
+      full_name:    sanitise(this.data.fullName || ''),
+      work_email:   GateState.email,
+      gender:       orNull(this.data.gender),
+      whatsapp_number: orNull(this.data.whatsappNumber),
 
       // Professional
-      job_title:                     orNull(this.data.jobTitle),
-      business_unit:                 orNull(this.data.businessUnit),
-      office_location:               orNull(this.data.officeLocation),
-      office_country:                orNull(this.data.officeCountry),
+      job_title:      orNull(this.data.jobTitle),
+      business_unit:  orNull(this.data.businessUnit),
+      office_location: orNull(this.data.officeLocation),
+      office_country:  orNull(this.data.officeCountry),
 
-// Travel
-country_of_residence:          orNull(this.data.countryOfResidence),
-departure_city:                orNull(this.data.departureCity),
-visa_status: orNull(this.data.visaRequired),
+      // Travel
+      country_of_residence: orNull(this.data.countryOfResidence),
+      departure_city:       orNull(this.data.departureCity),
+      visa_status:          orNull(this.data.visaRequired),
+      yellow_fever_certificate_required: orNull(this.data.yellowFeverRequired),
 
-yellow_fever_certificate_required:
-  orNull(this.data.yellowFeverRequired),
+      // Flights — only populated when booked
+      arrival_datetime: flightBooked && this.data.arrivalDate
+        ? `${this.data.arrivalDate}T${this.data.arrivalTime || '12:00'}:00`
+        : null,
+      departure_datetime: flightBooked && this.data.departureDate
+        ? `${this.data.departureDate}T${this.data.departureTime || '12:00'}:00`
+        : null,
 
-arrival_datetime:
-  this.data.arrivalDate
-    ? `${this.data.arrivalDate}T${this.data.arrivalTime || '12:00'}:00`
-    : null,
-
-departure_datetime:
-  this.data.departureDate
-    ? `${this.data.departureDate}T${this.data.departureTime || '12:00'}:00`
-    : null,
+      // Flight pending flag
+      flight_info_pending: flightPending,
 
       // Transfers
-      airport_transfer_arrival:      orNull(this.data.airportTransferArrival),
-      airport_transfer_departure:    orNull(this.data.airportTransferDeparture),
+      airport_transfer_arrival:   orNull(this.data.airportTransferArrival),
+      airport_transfer_departure: orNull(this.data.airportTransferDeparture),
 
       // Dietary
-      dietary_restrictions:          orNull(this.data.dietaryRestrictions),
-      food_allergies:                orNull(this.data.foodAllergies),
-      dietary_notes:                 orNull(this.data.dietaryNotes),
+      dietary_restrictions: orNull(this.data.dietaryRestrictions),
+      food_allergies:       orNull(this.data.foodAllergies),
+      dietary_notes:        orNull(this.data.dietaryNotes),
 
       // Health & emergency
-      medical_conditions:            orNull(this.data.medicalConditions),
-      medications:                   orNull(this.data.medications),
-      carries_epipen:   this.data.carriesEpipen === 'yes' ||   this.data.carriesEpipen === true,
-      emergency_contact_name:        orNull(this.data.emergencyContactName),
-      emergency_contact_relationship: orNull(this.data.emergencyContactRelationship),
-      emergency_contact_phone:       orNull(this.data.emergencyContactPhone),
-      travel_insurance_confirmed:    orNull(this.data.travelInsurance),
+      medical_conditions:              orNull(this.data.medicalConditions),
+      medications:                     orNull(this.data.medications),
+      carries_epipen: this.data.carriesEpipen === 'yes' || this.data.carriesEpipen === true,
+      emergency_contact_name:          orNull(this.data.emergencyContactName),
+      emergency_contact_relationship:  orNull(this.data.emergencyContactRelationship),
+      emergency_contact_phone:         orNull(this.data.emergencyContactPhone),
+      travel_insurance_confirmed:      orNull(this.data.travelInsurance),
 
       // Accessibility
-      mobility_requirements:         orNull(this.data.mobilityRequirements),
-      accessibility_requirements:    orNull(this.data.accessibilityRequirements),
+      mobility_requirements:      orNull(this.data.mobilityRequirements),
+      accessibility_requirements: orNull(this.data.accessibilityRequirements),
 
       // Programme — TEXT not array
-      preferred_topics:              preferredTopics,
+      preferred_topics: orNull(this.data.preferredTopics),
 
       // Merchandise
-      tshirt_size:                   orNull(this.data.tshirtSize),
+      tshirt_size: orNull(this.data.tshirtSize),
+      tshirt_fit:  orNull(this.data.tshirtFit),
+
+      // Status
+      registration_status: flightPending ? 'flight_pending' : 'complete',
+      attendance_status:   'attending',
 
       // Consent
-privacy_policy_accepted:
-  this.data.privacyAccepted === true ||
-  this.data.privacyAccepted === 'true',
-      terms_accepted:                this.data.termsAccepted === true || this.data.termsAccepted === 'true',
+      privacy_policy_accepted: this.data.privacyAccepted === true || this.data.privacyAccepted === 'true',
+      terms_accepted:          this.data.termsAccepted === true   || this.data.termsAccepted === 'true',
+    };
+  },
 
+  // Payload for flight-pending PATCH — only flight-related fields
+  buildFlightPayload() {
+    const orNull = val => {
+      if (val === null || val === undefined) return null;
+      const s = String(val).trim();
+      return s === '' ? null : s;
+    };
+
+    return {
+      arrival_datetime: this.data.arrivalDate
+        ? `${this.data.arrivalDate}T${this.data.arrivalTime || '12:00'}:00`
+        : null,
+      departure_datetime: this.data.departureDate
+        ? `${this.data.departureDate}T${this.data.departureTime || '12:00'}:00`
+        : null,
+      country_of_residence: orNull(this.data.countryOfResidence),
+      departure_city:       orNull(this.data.departureCity),
+      visa_status:          orNull(this.data.visaRequired),
+      yellow_fever_certificate_required: orNull(this.data.yellowFeverRequired),
+      airport_transfer_arrival:   orNull(this.data.airportTransferArrival),
+      airport_transfer_departure: orNull(this.data.airportTransferDeparture),
+      flight_info_pending: false,
+      registration_status: 'complete',
     };
   },
 };
+
+/* ============================================================
+   EMAIL GATE HANDLER
+   Called when user clicks Continue on the gate screen.
+   ============================================================ */
+async function handleEmailGate() {
+  const emailInput = document.getElementById('gate-email');
+  const errorEl    = document.getElementById('gate-email-error');
+  const btn        = document.getElementById('gate-btn');
+
+  const email = emailInput.value.trim().toLowerCase().replace(/\s+/g, '');
+
+  // Basic format validation
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    emailInput.classList.add('invalid');
+    errorEl.textContent = 'Please enter a valid email address.';
+    emailInput.focus();
+    return;
+  }
+
+  emailInput.classList.remove('invalid');
+  errorEl.textContent = '';
+
+  // Loading state
+  const btnLabel   = btn.querySelector('.btn-label');
+  const btnLoading = btn.querySelector('.btn-loading');
+  btn.disabled       = true;
+  btnLabel.hidden    = true;
+  btnLoading.hidden  = false;
+
+  // Hide all outcome messages
+  hideAllGateMsgs();
+
+  const result = await GateService.check(email);
+
+  btn.disabled      = false;
+  btnLabel.hidden   = false;
+  btnLoading.hidden = true;
+
+  switch (result.outcome) {
+
+    case 'not_found':
+      document.getElementById('gate-msg-notfound').hidden = false;
+      break;
+
+    case 'registered':
+      document.getElementById('gate-msg-registered').hidden = false;
+      break;
+
+    case 'flight_pending':
+      GateState.email          = email;
+      GateState.invitee        = result.invitee;
+      GateState.mode           = 'resume_flight';
+      GateState.registrationId = result.registrationId;
+      document.getElementById('gate-msg-flightpending').hidden = false;
+      break;
+
+    case 'new_user':
+      GateState.email   = email;
+      GateState.invitee = result.invitee;
+      GateState.mode    = 'new';
+      openFormForNewUser(result.invitee);
+      break;
+
+    case 'error':
+    default:
+      document.getElementById('gate-error-detail').textContent =
+        result.message || 'Please try again or contact aclowes@carinasw.com.';
+      document.getElementById('gate-msg-error').hidden = false;
+      break;
+  }
+}
+
+function hideAllGateMsgs() {
+  ['gate-msg-notfound', 'gate-msg-registered', 'gate-msg-flightpending', 'gate-msg-error'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.hidden = true;
+  });
+}
+
+/* ============================================================
+   OPEN FORM — new user
+   Hides the gate, shows the form, pre-populates fields.
+   ============================================================ */
+function openFormForNewUser(invitee) {
+  document.getElementById('email-gate').hidden    = true;
+  document.getElementById('reg-form-wrap').hidden = false;
+
+  // Pre-populate from invitee profile
+  if (invitee) {
+    setField('f-fullname',      invitee.full_name);
+    setField('f-gender',        invitee.gender);
+    setField('f-jobtitle',      invitee.job_title);
+    setField('f-businessunit',  invitee.business_unit);
+    setField('f-officelocation', invitee.office_location);
+    setField('f-officecountry', invitee.office_country);
+
+    // Pre-fill tshirt_fit from gender
+    const fit = invitee.gender === 'Female' ? 'Fitted' : 'Standard';
+    setField('f-tshirtfit', fit);
+
+    // Store in FormState so payload picks it up
+    FormState.merge({
+      fullName:       invitee.full_name      || '',
+      gender:         invitee.gender         || '',
+      jobTitle:       invitee.job_title      || '',
+      businessUnit:   invitee.business_unit  || '',
+      officeLocation: invitee.office_location || '',
+      officeCountry:  invitee.office_country || '',
+      tshirtFit:      fit,
+    });
+  }
+
+  showStep(0, 1);
+  scrollToForm();
+}
+
+/* ============================================================
+   RESUME FLIGHT DETAILS — returning user
+   Hides gate, shows form starting at Step 3 (travel).
+   ============================================================ */
+function resumeFlightDetails() {
+  document.getElementById('email-gate').hidden    = true;
+  document.getElementById('reg-form-wrap').hidden = false;
+
+  // Show only step 3, hide step indicator steps 1-2 (already completed)
+  updateStepIndicatorForResume();
+
+  // Jump directly to step 3
+  FormState.currentStep = 3;
+  document.querySelectorAll('.form-step-panel').forEach(p => { p.hidden = true; });
+  const step3 = document.getElementById('form-step-3');
+  if (step3) step3.hidden = false;
+
+  // Show flight fields immediately (they're resuming to add them)
+  const flightFields = document.getElementById('flight-fields');
+  if (flightFields) flightFields.hidden = false;
+
+  // Pre-select "yes" for flight booked
+  const yesRadio = document.querySelector('input[name="flightBooked"][value="yes"]');
+  if (yesRadio) yesRadio.checked = true;
+
+  // Adjust step 3 Back button — goes back to gate (not step 2)
+  const backBtn = document.querySelector('#form-step-3 .btn-ghost');
+  if (backBtn) {
+    backBtn.onclick = () => {
+      document.getElementById('reg-form-wrap').hidden = true;
+      document.getElementById('email-gate').hidden    = false;
+      hideAllGateMsgs();
+      document.getElementById('gate-msg-flightpending').hidden = false;
+    };
+  }
+
+  // Override Continue button on step 3 to submit flight update instead
+  const continueBtn = document.querySelector('#form-step-3 .btn-primary');
+  if (continueBtn) {
+    continueBtn.onclick = () => submitFlightUpdate();
+    continueBtn.querySelector('.btn-label') && (continueBtn.querySelector('.btn-label').textContent || (continueBtn.textContent = 'Save flight details'));
+  }
+
+  scrollToForm();
+}
+
+function updateStepIndicatorForResume() {
+  document.querySelectorAll('.form-step-item').forEach(item => {
+    const step = parseInt(item.dataset.step, 10);
+    item.classList.remove('active', 'completed');
+    if (step === 3) {
+      item.classList.add('active');
+    } else if (step < 3) {
+      item.classList.add('completed');
+      const dot = item.querySelector('.form-step-dot');
+      if (dot) dot.textContent = '✓';
+    }
+  });
+}
+
+/* ============================================================
+   FLIGHT FIELDS TOGGLE
+   Called by radio change in Step 3.
+   ============================================================ */
+function toggleFlightFields(value) {
+  const flightFields = document.getElementById('flight-fields');
+  if (!flightFields) return;
+
+  if (value === 'yes') {
+    flightFields.hidden = false;
+    // Make flight date/time fields required dynamically
+    ['f-arrivaldate','f-arrivaltime','f-departuredate','f-departuretime'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.setAttribute('required', '');
+    });
+  } else {
+    flightFields.hidden = true;
+    // Remove required so validation doesn't block
+    ['f-arrivaldate','f-arrivaltime','f-departuredate','f-departuretime'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.removeAttribute('required');
+    });
+  }
+}
 
 /* ============================================================
    FORM VALIDATION
@@ -213,17 +569,18 @@ privacy_policy_accepted:
 const Validator = {
   rules: {
     'f-fullname':         { required: true, label: 'Full name' },
-    'f-email':            { required: true, label: 'Work email', pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
+    'f-gender':           { required: true, label: 'Gender' },
     'f-jobtitle':         { required: true, label: 'Job title' },
     'f-businessunit':     { required: true, label: 'Business unit' },
     'f-residencecountry': { required: true, label: 'Country of residence', validate: v => COUNTRIES.includes(v) || 'Please select a country from the list.' },
     'f-departurecity':    { required: true, label: 'Departure city' },
-    'f-arrivaldate':      { required: true, label: 'Arrival date' },
-    'f-arrivaltime':      { required: true, label: 'Arrival time' },
-    'f-departuredate':    { required: true, label: 'Departure date' },
-    'f-departuretime':    { required: true, label: 'Departure time' },
+    'f-arrivaldate':      { required: false, label: 'Arrival date' },   // conditionally required
+    'f-arrivaltime':      { required: false, label: 'Arrival time' },
+    'f-departuredate':    { required: false, label: 'Departure date' },
+    'f-departuretime':    { required: false, label: 'Departure time' },
     'f-transferarrival':  { required: true, label: 'Arrival transfer' },
     'f-transferdeparture':{ required: true, label: 'Departure transfer' },
+    'f-tshirtfit':        { required: true, label: 'T-shirt fit' },
     'f-emergencyname':    { required: true, label: 'Emergency contact name' },
     'f-emergencyrelation':{ required: true, label: 'Relationship' },
     'f-emergencyphone':   { required: true, label: 'Emergency contact phone', pattern: /^[+\d\s\-().]{7,20}$/ },
@@ -246,9 +603,12 @@ const Validator = {
 
     let valid = true;
 
-    // Required inputs/selects/textareas
+    // Required inputs/selects/textareas (honours the required attribute)
     const fields = stepEl.querySelectorAll('[required]');
     fields.forEach(field => {
+      // Skip hidden fields (flight details when not booked)
+      if (field.closest('[hidden]')) return;
+
       const value = field.value.trim();
       const rule  = this.rules[field.id];
       const errId = field.id.replace('f-', 'err-');
@@ -267,7 +627,19 @@ const Validator = {
       if (error) valid = false;
     });
 
-    // Step 6: required radio groups — EpiPen and travel insurance
+    // Step 3: flight booked radio required
+    if (step === 3) {
+      const flightBooked = document.querySelector('input[name="flightBooked"]:checked');
+      const errEl = document.getElementById('err-flightbooked');
+      if (!flightBooked) {
+        if (errEl) errEl.textContent = 'Please indicate whether your flights are booked.';
+        valid = false;
+      } else {
+        if (errEl) errEl.textContent = '';
+      }
+    }
+
+    // Step 6: radio groups — EpiPen and travel insurance
     if (step === 6) {
       const epipen = document.querySelector('input[name="carriesEpipen"]:checked');
       const errEpipen = document.getElementById('err-epipen');
@@ -327,58 +699,40 @@ function collectStepData(step) {
   if (!stepEl) return {};
 
   const data = {};
-  const inputs   = stepEl.querySelectorAll('input:not([type="radio"]):not([type="checkbox"])');
-  const selects  = stepEl.querySelectorAll('select');
-  const textareas = stepEl.querySelectorAll('textarea');
-  const radios   = {};
 
-  // Collect radio values
   stepEl.querySelectorAll('input[type="radio"]:checked').forEach(r => {
-    radios[r.name] = r.value;
+    data[toCamel(r.name)] = r.value;
   });
 
-  // Collect checkboxes
   stepEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
     data[toCamel(cb.name)] = cb.checked;
   });
 
-  inputs.forEach(el => {
+  stepEl.querySelectorAll('input:not([type="radio"]):not([type="checkbox"])').forEach(el => {
     if (el.name) data[toCamel(el.name)] = el.value;
   });
 
-  selects.forEach(el => {
+  stepEl.querySelectorAll('select').forEach(el => {
     if (el.name) data[toCamel(el.name)] = el.value;
   });
 
-  textareas.forEach(el => {
+  stepEl.querySelectorAll('textarea').forEach(el => {
     if (el.name) data[toCamel(el.name)] = el.value;
   });
-
-  Object.assign(data, radios);
 
   return data;
 }
 
 function toCamel(str) {
-  return str.replace(/-./g, x => x[1].toUpperCase())
-            .replace(/_./g, x => x[1].toUpperCase());
+  return str.replace(/-./g,  x => x[1].toUpperCase())
+            .replace(/_./g,  x => x[1].toUpperCase());
 }
 
 /* ============================================================
    MULTI-STEP NAVIGATION
    ============================================================ */
 function nextStep(current) {
-  if (!Validator.validateStep(current)) {
-    // Shake the step
-    const panel = document.getElementById('form-step-' + current);
-    if (panel) {
-      panel.style.animation = 'none';
-      setTimeout(() => {
-        panel.style.animation = '';
-      }, 10);
-    }
-    return;
-  }
+  if (!Validator.validateStep(current)) return;
 
   FormState.merge(collectStepData(current));
 
@@ -400,17 +754,11 @@ function showStep(from, to) {
   const toEl   = document.getElementById('form-step-' + to);
 
   if (fromEl) fromEl.hidden = true;
-  if (toEl)   toEl.hidden = false;
+  if (toEl)   toEl.hidden   = false;
 
   FormState.currentStep = to;
   updateStepIndicator(to);
-
-  // Scroll to form top
-  const formWrap = document.getElementById('reg-form-wrap');
-  if (formWrap) {
-    const top = formWrap.getBoundingClientRect().top + window.scrollY - (72 + 20);
-    window.scrollTo({ top, behavior: 'smooth' });
-  }
+  scrollToForm();
 }
 
 function updateStepIndicator(current) {
@@ -421,30 +769,34 @@ function updateStepIndicator(current) {
       item.classList.add('active');
     } else if (step < current) {
       item.classList.add('completed');
-      // Update dot to checkmark
       const dot = item.querySelector('.form-step-dot');
-      if (dot && dot.textContent !== '✓') {
-        dot.textContent = '✓';
-      }
+      if (dot && dot.textContent !== '✓') dot.textContent = '✓';
     }
   });
 }
 
+function scrollToForm() {
+  const formWrap = document.getElementById('reg-form-wrap') || document.getElementById('email-gate');
+  if (formWrap) {
+    const top = formWrap.getBoundingClientRect().top + window.scrollY - (72 + 20);
+    window.scrollTo({ top, behavior: 'smooth' });
+  }
+}
+
 /* ============================================================
-   FORM SUBMISSION
+   FORM SUBMISSION — new registration
    ============================================================ */
 async function submitRegistration() {
   if (!Validator.validateStep(10)) return;
 
   FormState.merge(collectStepData(10));
 
-  const submitBtn   = document.getElementById('submit-btn');
-  const btnLabel    = submitBtn.querySelector('.btn-label');
-  const btnLoading  = submitBtn.querySelector('.btn-loading');
-  const errorBox    = document.getElementById('error-box');
-  const errorMsg    = document.getElementById('error-message');
+  const submitBtn  = document.getElementById('submit-btn');
+  const btnLabel   = submitBtn.querySelector('.btn-label');
+  const btnLoading = submitBtn.querySelector('.btn-loading');
+  const errorBox   = document.getElementById('error-box');
+  const errorMsg   = document.getElementById('error-message');
 
-  // Set loading state
   submitBtn.disabled = true;
   if (btnLabel)   btnLabel.hidden   = true;
   if (btnLoading) btnLoading.hidden = false;
@@ -457,6 +809,7 @@ async function submitRegistration() {
     FormState.clearDraft();
     document.getElementById('reg-form-wrap').hidden = true;
     document.getElementById('success-box').hidden   = false;
+    scrollToForm();
   } else {
     submitBtn.disabled = false;
     if (btnLabel)   btnLabel.hidden   = false;
@@ -471,28 +824,87 @@ async function submitRegistration() {
 }
 
 /* ============================================================
+   FLIGHT UPDATE SUBMISSION — resume flow
+   ============================================================ */
+async function submitFlightUpdate() {
+  // Validate flight fields in step 3
+  const flightFields = ['f-arrivaldate','f-arrivaltime','f-departuredate','f-departuretime',
+                        'f-residencecountry','f-departurecity','f-transferarrival','f-transferdeparture'];
+  let valid = true;
+
+  flightFields.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const rule  = Validator.rules[id];
+    const errId = id.replace('f-', 'err-');
+    if (el.required && !el.value.trim()) {
+      Validator.setFieldError(el, errId, (rule ? rule.label : id) + ' is required.');
+      valid = false;
+    } else {
+      Validator.setFieldError(el, errId, '');
+    }
+  });
+
+  if (!valid) return;
+
+  FormState.merge(collectStepData(3));
+
+  // Repurpose submit button on step 3
+  const btn       = document.querySelector('#form-step-3 .btn-primary');
+  const origText  = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+  const errorBox = document.getElementById('error-box');
+  if (errorBox) errorBox.hidden = true;
+
+  const payload = FormState.buildFlightPayload();
+  const result  = await RegistrationService.updateFlight(GateState.registrationId, payload);
+
+  if (result.success) {
+    FormState.clearDraft();
+    document.getElementById('reg-form-wrap').hidden    = true;
+    document.getElementById('success-box-flight').hidden = false;
+    scrollToForm();
+  } else {
+    if (btn) { btn.disabled = false; btn.textContent = origText; }
+    const errorMsg = document.getElementById('error-message');
+    if (errorBox && errorMsg) {
+      errorMsg.textContent = result.error;
+      errorBox.hidden = false;
+      errorBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+}
+
+/* ============================================================
+   FIELD HELPER
+   ============================================================ */
+function setField(id, value) {
+  if (!value) return;
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.value = value;
+}
+
+/* ============================================================
    PROGRAMME TAB SWITCHER
    ============================================================ */
 function showDay(event, dayId) {
-  // Deactivate all tabs
   document.querySelectorAll('.day-tab').forEach(tab => {
     tab.classList.remove('active');
     tab.setAttribute('aria-selected', 'false');
   });
 
-  // Hide all content panels
   document.querySelectorAll('.day-content').forEach(panel => {
     panel.classList.remove('active');
     panel.hidden = true;
   });
 
-  // Activate clicked tab
   if (event && event.currentTarget) {
     event.currentTarget.classList.add('active');
     event.currentTarget.setAttribute('aria-selected', 'true');
   }
 
-  // Show matching content
   const target = document.getElementById('day-' + dayId);
   if (target) {
     target.classList.add('active');
@@ -504,10 +916,9 @@ function showDay(event, dayId) {
    FAQ ACCORDION
    ============================================================ */
 function toggleFaq(btn) {
-  const isOpen  = btn.getAttribute('aria-expanded') === 'true';
-  const answer  = btn.nextElementSibling;
+  const isOpen = btn.getAttribute('aria-expanded') === 'true';
+  const answer = btn.nextElementSibling;
 
-  // Close all others
   document.querySelectorAll('.faq-question[aria-expanded="true"]').forEach(other => {
     if (other !== btn) {
       other.setAttribute('aria-expanded', 'false');
@@ -535,23 +946,15 @@ function updateCountdown() {
   if (!cdDays) return;
 
   if (diff <= 0) {
-    cdDays.textContent = '0';
-    cdHours.textContent = '0';
-    cdMins.textContent = '0';
-    cdSecs.textContent = '0';
+    cdDays.textContent = cdHours.textContent = cdMins.textContent = cdSecs.textContent = '0';
     return;
   }
 
   const pad = n => String(n).padStart(2, '0');
-  const days  = Math.floor(diff / 86400000);
-  const hours = Math.floor((diff % 86400000) / 3600000);
-  const mins  = Math.floor((diff % 3600000)  / 60000);
-  const secs  = Math.floor((diff % 60000)    / 1000);
-
-  cdDays.textContent  = days;
-  cdHours.textContent = pad(hours);
-  cdMins.textContent  = pad(mins);
-  cdSecs.textContent  = pad(secs);
+  cdDays.textContent  = Math.floor(diff / 86400000);
+  cdHours.textContent = pad(Math.floor((diff % 86400000) / 3600000));
+  cdMins.textContent  = pad(Math.floor((diff % 3600000)  / 60000));
+  cdSecs.textContent  = pad(Math.floor((diff % 60000)    / 1000));
 }
 
 /* ============================================================
@@ -560,29 +963,23 @@ function updateCountdown() {
 function updateScrollProgress() {
   const bar = document.getElementById('nav-progress-bar');
   if (!bar) return;
-  const scrollTop = window.scrollY || document.documentElement.scrollTop;
+  const scrollTop    = window.scrollY || document.documentElement.scrollTop;
   const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
   bar.style.width = scrollHeight > 0 ? (scrollTop / scrollHeight * 100) + '%' : '0%';
 }
 
 function updateNavActiveState() {
-  const sections = document.querySelectorAll('section[id], .countdown-bar');
-  const nav      = document.getElementById('main-nav');
-  const navHeight = nav ? nav.offsetHeight : 72;
-
+  const sections  = document.querySelectorAll('section[id], .countdown-bar');
+  const navHeight = (document.getElementById('main-nav') || {}).offsetHeight || 72;
   let current = '';
 
   sections.forEach(section => {
-    const top = section.getBoundingClientRect().top;
-    if (top <= navHeight + 40) current = section.id || '';
+    if (section.getBoundingClientRect().top <= navHeight + 40) current = section.id || '';
   });
 
   document.querySelectorAll('.nav-link').forEach(link => {
     link.classList.remove('active');
-    const href = link.getAttribute('href');
-    if (href && href === '#' + current) {
-      link.classList.add('active');
-    }
+    if (link.getAttribute('href') === '#' + current) link.classList.add('active');
   });
 }
 
@@ -620,10 +1017,8 @@ function initMobileNav() {
    ============================================================ */
 async function loadAttendeeStats() {
   const stats = await RegistrationService.getStats();
-
   const confirmed = document.getElementById('stat-confirmed');
   const countries = document.getElementById('stat-countries');
-
   if (confirmed) confirmed.textContent = stats.confirmed > 0 ? stats.confirmed : '—';
   if (countries) countries.textContent = stats.countries > 0 ? stats.countries : '—';
 }
@@ -637,10 +1032,10 @@ function initInlineValidation() {
     if (!el) return;
 
     el.addEventListener('blur', () => {
-      const rule   = Validator.rules[id];
-      const value  = el.value.trim();
-      const errId  = id.replace('f-', 'err-');
-      let error    = '';
+      const rule  = Validator.rules[id];
+      const value = el.value.trim();
+      const errId = id.replace('f-', 'err-');
+      let error   = '';
 
       if (rule.required && !value) {
         error = rule.label + ' is required.';
@@ -662,6 +1057,18 @@ function initInlineValidation() {
 }
 
 /* ============================================================
+   GATE — Enter key support
+   ============================================================ */
+function initGateKeyboard() {
+  const gateInput = document.getElementById('gate-email');
+  if (gateInput) {
+    gateInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleEmailGate();
+    });
+  }
+}
+
+/* ============================================================
    ADMIN AUTH SERVICE
    ============================================================ */
 const AdminAuth = {
@@ -669,21 +1076,15 @@ const AdminAuth = {
   async signIn(email, password) {
     const response = await fetch(CONFIG.SUPABASE_URL + '/auth/v1/token?grant_type=password', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': CONFIG.SUPABASE_ANON_KEY,
-      },
+      headers: { 'Content-Type': 'application/json', 'apikey': CONFIG.SUPABASE_ANON_KEY },
       body: JSON.stringify({ email, password }),
     });
     const data = await response.json();
     if (!response.ok) {
-      const msg = data.error_description || data.message || data.msg || JSON.stringify(data);
-      console.error('[AdminAuth] Login failed:', response.status, msg);
-      throw new Error(msg || 'Invalid email or password.');
+      throw new Error(data.error_description || data.message || 'Invalid email or password.');
     }
-    // Supabase v2 returns access_token at root; v1 may nest under session
     const token = data.access_token || data?.session?.access_token;
-    if (!token) throw new Error('Authentication succeeded but no token was returned. Contact your administrator.');
+    if (!token) throw new Error('Authentication succeeded but no token was returned.');
     return token;
   },
 
@@ -691,16 +1092,13 @@ const AdminAuth = {
     try {
       await fetch(CONFIG.SUPABASE_URL + '/auth/v1/logout', {
         method: 'POST',
-        headers: {
-          'apikey': CONFIG.SUPABASE_ANON_KEY,
-          'Authorization': 'Bearer ' + token,
-        },
+        headers: { 'apikey': CONFIG.SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token },
       });
-    } catch { /* silent — session already cleaned up locally */ }
+    } catch { /* silent */ }
   },
 };
 
-let adminAccessToken = null;
+let adminAccessToken  = null;
 let adminRegistrations = [];
 
 async function adminLogin() {
@@ -719,20 +1117,10 @@ async function adminLogin() {
 
   try {
     adminAccessToken = await AdminAuth.signIn(email, password);
-
-    const loginEl   = document.getElementById('admin-login');
-    const contentEl = document.getElementById('admin-content');
-
-    if (!loginEl || !contentEl) {
-      throw new Error('Admin panel elements not found. Please reload the page.');
-    }
-
-    loginEl.setAttribute('hidden', '');
-    contentEl.removeAttribute('hidden');
+    document.getElementById('admin-login').setAttribute('hidden', '');
+    document.getElementById('admin-content').removeAttribute('hidden');
     await loadAdminData();
-
   } catch (err) {
-    console.error('[adminLogin]', err);
     if (errEl) errEl.textContent = err.message || 'Invalid email or password.';
     adminAccessToken = null;
   } finally {
@@ -742,21 +1130,18 @@ async function adminLogin() {
 
 async function loadAdminData() {
   const tbody = document.getElementById('admin-tbody');
-  if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="admin-loading">Loading registrations…</td></tr>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="admin-loading">Loading registrations…</td></tr>';
 
   try {
-    const response = await fetch(CONFIG.SUPABASE_URL + '/rest/v1/registrations?select=*&order=created_at.desc', {
-      headers: {
-        'apikey':        CONFIG.SUPABASE_ANON_KEY,
-        'Authorization': 'Bearer ' + adminAccessToken,
-        'Content-Type':  'application/json',
-      },
-    });
+    const response = await fetch(
+      CONFIG.SUPABASE_URL + '/rest/v1/registrations?select=*&order=created_at.desc',
+      { headers: { 'apikey': CONFIG.SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + adminAccessToken } }
+    );
     if (!response.ok) throw new Error('Failed to load registrations.');
     adminRegistrations = await response.json();
-  } catch (err) {
+  } catch {
     adminRegistrations = [];
-    if (tbody) tbody.innerHTML = '<tr><td colspan="8" class="admin-loading">Error loading data. Please try again.</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="admin-loading">Error loading data. Please try again.</td></tr>';
     return;
   }
 
@@ -766,35 +1151,24 @@ async function loadAdminData() {
   if (total) total.textContent = adminRegistrations.length;
 }
 
-
-
 async function openAdmin() {
   const panel = document.getElementById('admin-panel');
   if (!panel) return;
   panel.hidden = false;
   document.body.style.overflow = 'hidden';
-
-  // Always show login screen on open, reset state
   document.getElementById('admin-login').removeAttribute('hidden');
   document.getElementById('admin-content').setAttribute('hidden', '');
   adminAccessToken = null;
-
-  const emailEl = document.getElementById('admin-email');
-  const passEl  = document.getElementById('admin-password');
-  const errEl   = document.getElementById('admin-login-error');
-  if (emailEl) emailEl.value = '';
-  if (passEl)  passEl.value  = '';
-  if (errEl)   errEl.textContent = '';
+  ['admin-email','admin-password'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const errEl = document.getElementById('admin-login-error');
+  if (errEl) errEl.textContent = '';
 }
 
 async function closeAdmin() {
   const panel = document.getElementById('admin-panel');
   if (panel) panel.hidden = true;
   document.body.style.overflow = '';
-  if (adminAccessToken) {
-    AdminAuth.signOut(adminAccessToken).catch(() => {});
-    adminAccessToken = null;
-  }
+  if (adminAccessToken) { AdminAuth.signOut(adminAccessToken).catch(() => {}); adminAccessToken = null; }
   adminRegistrations = [];
 }
 
@@ -802,71 +1176,53 @@ function populateCountryFilter(rows) {
   const sel = document.getElementById('admin-filter-country');
   if (!sel) return;
   const countries = [...new Set(rows.map(r => r.country_of_residence).filter(Boolean))].sort();
-  sel.innerHTML = '<option value="">All countries</option>';
-  countries.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c;
-    opt.textContent = c;
-    sel.appendChild(opt);
-  });
+  sel.innerHTML = '<option value="">All countries</option>' +
+    countries.map(c => `<option value="${escHtml(c)}">${escHtml(c)}</option>`).join('');
 }
 
 function filterAdmin() {
-  const nameQ    = (document.getElementById('admin-search-name')?.value   || '').toLowerCase();
-  const emailQ   = (document.getElementById('admin-search-email')?.value  || '').toLowerCase();
+  const nameQ    = (document.getElementById('admin-search-name')?.value  || '').toLowerCase();
+  const emailQ   = (document.getElementById('admin-search-email')?.value || '').toLowerCase();
   const countryQ = (document.getElementById('admin-filter-country')?.value || '').toLowerCase();
-  const visaQ    = (document.getElementById('admin-filter-visa')?.value    || '').toLowerCase();
+  const visaQ    = (document.getElementById('admin-filter-visa')?.value   || '').toLowerCase();
 
-  const filtered = adminRegistrations.filter(r => {
-    const name  = (r.full_name  || '').toLowerCase();
-    const email = (r.email      || '').toLowerCase();
-    const country = (r.country_of_residence || '').toLowerCase();
-    const visa    = (r.visa_status || '').toLowerCase();
-
-    return (
-      (!nameQ    || name.includes(nameQ))    &&
-      (!emailQ   || email.includes(emailQ))  &&
-      (!countryQ || country.includes(countryQ)) &&
-      (!visaQ    || visa === visaQ)
-    );
-  });
+  const filtered = adminRegistrations.filter(r =>
+    (!nameQ    || (r.full_name  || '').toLowerCase().includes(nameQ))    &&
+    (!emailQ   || (r.work_email || '').toLowerCase().includes(emailQ))   &&
+    (!countryQ || (r.country_of_residence || '').toLowerCase().includes(countryQ)) &&
+    (!visaQ    || (r.visa_status || '').toLowerCase() === visaQ)
+  );
 
   renderAdminTable(filtered);
 }
 
 function renderAdminTable(rows) {
-  const tbody = document.getElementById('admin-tbody');
+  const tbody   = document.getElementById('admin-tbody');
   const countEl = document.getElementById('admin-count');
   if (!tbody) return;
-
   if (countEl) countEl.textContent = rows.length;
 
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="admin-loading">No registrations found.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" class="admin-loading">No registrations found.</td></tr>';
     return;
   }
 
   tbody.innerHTML = rows.map(r => {
     const submitted = r.created_at
-  ? new Date(r.created_at).toLocaleDateString(
-      'en-GB',
-      {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }
-    )
+      ? new Date(r.created_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
       : '—';
+    const statusBadge = r.flight_info_pending
+      ? '<span style="font-size:0.7rem;background:#FEF3C7;color:#92400E;padding:0.1rem 0.4rem;border-radius:4px;font-weight:600">Flight pending</span>'
+      : '<span style="font-size:0.7rem;background:#D1FAE5;color:#065F46;padding:0.1rem 0.4rem;border-radius:4px;font-weight:600">Complete</span>';
     return `<tr>
-      <td>${escHtml(r.full_name || '—')}</td>
-      <td>${escHtml(r.email || '—')}</td>
-      <td>${escHtml(r.job_title || '—')}</td>
+      <td>${escHtml(r.full_name    || '—')}</td>
+      <td>${escHtml(r.work_email   || '—')}</td>
+      <td>${escHtml(r.job_title    || '—')}</td>
       <td>${escHtml(r.business_unit || '—')}</td>
       <td>${escHtml(r.country_of_residence || '—')}</td>
-      <td>${escHtml(r.visa_status || '—')}</td>
-      <td>${escHtml(r.tshirt_size || '—')}</td>
+      <td>${escHtml(r.visa_status  || '—')}</td>
+      <td>${statusBadge}</td>
+      <td>${escHtml(r.tshirt_size  || '—')}</td>
       <td>${submitted}</td>
     </tr>`;
   }).join('');
@@ -874,73 +1230,40 @@ function renderAdminTable(rows) {
 
 function escHtml(str) {
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function exportCSV() {
-  if (adminRegistrations.length === 0) {
-    alert('No registrations to export.');
-    return;
-  }
+  if (adminRegistrations.length === 0) { alert('No registrations to export.'); return; }
 
-const columns = [
-  'full_name',
-  'work_email',
-  'whatsapp_number',
-  'job_title',
-  'business_unit',
-  'office_location',
-  'office_country',
-  'country_of_residence',
-  'departure_city',
-  'visa_status',
-  'yellow_fever_certificate_required',
-  'arrival_datetime',
-  'departure_datetime',
-  'airport_transfer_arrival',
-  'airport_transfer_departure',
-  'dietary_restrictions',
-  'food_allergies',
-  'dietary_notes',
-  'medical_conditions',
-  'medications',
-  'carries_epipen',
-  'emergency_contact_name',
-  'emergency_contact_relationship',
-  'emergency_contact_phone',
-  'travel_insurance_confirmed',
-  'mobility_requirements',
-  'accessibility_requirements',
-  'preferred_topics',
-  'tshirt_size',
-  'privacy_policy_accepted',
-  'terms_accepted'
-];
+  const columns = [
+    'full_name','work_email','gender','whatsapp_number',
+    'job_title','business_unit','office_location','office_country',
+    'country_of_residence','departure_city','visa_status',
+    'yellow_fever_certificate_required','arrival_datetime','departure_datetime',
+    'flight_info_pending','airport_transfer_arrival','airport_transfer_departure',
+    'dietary_restrictions','food_allergies','dietary_notes',
+    'medical_conditions','medications','carries_epipen',
+    'emergency_contact_name','emergency_contact_relationship','emergency_contact_phone',
+    'travel_insurance_confirmed','mobility_requirements','accessibility_requirements',
+    'preferred_topics','tshirt_size','tshirt_fit',
+    'registration_status','attendance_status',
+    'privacy_policy_accepted','terms_accepted','created_at',
+  ];
 
   const header = columns.map(c => '"' + c + '"').join(',');
   const rows   = adminRegistrations.map(r =>
-    columns.map(c => {
-      const val = r[c];
-      if (val === null || val === undefined) return '';
-      return '"' + String(val).replace(/"/g, '""') + '"';
-    }).join(',')
+    columns.map(c => '"' + String(r[c] ?? '').replace(/"/g, '""') + '"').join(',')
   );
 
-  const csv   = [header, ...rows].join('\r\n');
-  const blob  = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url   = URL.createObjectURL(blob);
-  const link  = document.createElement('a');
-  link.href   = url;
-  link.download = 'datamine-conference-2026-registrations.csv';
-  link.click();
-  URL.revokeObjectURL(url);
+  const blob = new Blob([[header, ...rows].join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  const a    = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'dgc2026-registrations.csv' });
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 /* ============================================================
-   KEYBOARD SHORTCUT — ESC closes admin, Enter submits login
+   KEYBOARD SHORTCUTS
    ============================================================ */
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
@@ -987,24 +1310,19 @@ const COUNTRIES = [
 let countryActiveIndex = -1;
 
 function countryFilter(input) {
-  const listId  = input.getAttribute('aria-controls');
-  const list    = document.getElementById(listId);
+  const list = document.getElementById(input.getAttribute('aria-controls'));
   if (!list) return;
 
-  const query = input.value.trim().toLowerCase();
+  const query   = input.value.trim().toLowerCase();
   const matches = query.length === 0
     ? COUNTRIES
     : COUNTRIES.filter(c => c.toLowerCase().includes(query));
 
   countryActiveIndex = -1;
 
-  if (matches.length === 0) {
-    list.innerHTML = '<li class="no-results">No countries found</li>';
-  } else {
-    list.innerHTML = matches.map(c =>
-      `<li role="option" aria-selected="false" onmousedown="countrySelect(event,'${input.id}','${c}')">${c}</li>`
-    ).join('');
-  }
+  list.innerHTML = matches.length === 0
+    ? '<li class="no-results">No countries found</li>'
+    : matches.map(c => `<li role="option" aria-selected="false" onmousedown="countrySelect(event,'${input.id}','${c}')">${c}</li>`).join('');
 
   list.removeAttribute('hidden');
   input.setAttribute('aria-expanded', 'true');
@@ -1015,36 +1333,27 @@ function countrySelect(event, inputId, value) {
   const input = document.getElementById(inputId);
   if (!input) return;
   input.value = value;
-  const listId = input.getAttribute('aria-controls');
-  const list   = document.getElementById(listId);
-  if (list) { list.setAttribute('hidden', ''); }
+  const list = document.getElementById(input.getAttribute('aria-controls'));
+  if (list) list.setAttribute('hidden', '');
   input.setAttribute('aria-expanded', 'false');
-  // Trigger inline validation clear
   input.classList.remove('invalid');
   const errEl = document.getElementById(input.id.replace('f-', 'err-'));
   if (errEl) errEl.textContent = '';
 }
 
 function countryBlur(input) {
-  // Small delay so mousedown on list item fires first
   setTimeout(() => {
-    const listId = input.getAttribute('aria-controls');
-    const list   = document.getElementById(listId);
-    if (list) { list.setAttribute('hidden', ''); }
+    const list = document.getElementById(input.getAttribute('aria-controls'));
+    if (list) list.setAttribute('hidden', '');
     input.setAttribute('aria-expanded', 'false');
     countryActiveIndex = -1;
-
-    // If typed value isn't a valid country, clear it
     const val = input.value.trim();
-    if (val && !COUNTRIES.includes(val)) {
-      input.value = '';
-    }
+    if (val && !COUNTRIES.includes(val)) input.value = '';
   }, 150);
 }
 
 function countryKey(event, input) {
-  const listId = input.getAttribute('aria-controls');
-  const list   = document.getElementById(listId);
+  const list = document.getElementById(input.getAttribute('aria-controls'));
   if (!list || list.hidden) return;
 
   const items = list.querySelectorAll('li:not(.no-results)');
@@ -1066,46 +1375,28 @@ function countryKey(event, input) {
     return;
   }
 
-  items.forEach((item, i) => {
-    item.setAttribute('aria-selected', i === countryActiveIndex ? 'true' : 'false');
-  });
-
-  if (countryActiveIndex >= 0) {
-    items[countryActiveIndex].scrollIntoView({ block: 'nearest' });
-  }
+  items.forEach((item, i) => item.setAttribute('aria-selected', i === countryActiveIndex ? 'true' : 'false'));
+  if (countryActiveIndex >= 0) items[countryActiveIndex].scrollIntoView({ block: 'nearest' });
 }
 
 /* ============================================================
    INIT
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
-  // Clear draft on tab/window close to avoid sensitive data lingering
-  window.addEventListener('beforeunload', () => {
-    FormState.clearDraft();
-  });
+  window.addEventListener('beforeunload', () => FormState.clearDraft());
 
-  // Restore draft
   FormState.loadDraft();
 
-  // Countdown
   updateCountdown();
   setInterval(updateCountdown, 1000);
 
-  // Scroll handlers
-  const onScroll = () => {
-    updateScrollProgress();
-    updateNavActiveState();
-  };
+  const onScroll = () => { updateScrollProgress(); updateNavActiveState(); };
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
-  // Mobile nav
   initMobileNav();
-
-  // Inline validation
   initInlineValidation();
-
-  // Stats
+  initGateKeyboard();
   loadAttendeeStats();
 
   // Programme tab default
@@ -1116,7 +1407,5 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Admin panel URL trigger
-  if (new URLSearchParams(window.location.search).get('admin') === 'true') {
-    openAdmin();
-  }
+  if (new URLSearchParams(window.location.search).get('admin') === 'true') openAdmin();
 });
